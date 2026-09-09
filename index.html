@@ -4,22 +4,76 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>刘子铉 · AI 简历</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js">
+    </script>
     <style>
-        /* ===== 全局重置 ===== */
+        /* ===== 基础重置 ===== */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
+        :root {
+            --bg-body: #f7f4f0;
+            --bg-card: rgba(255, 252, 248, 0.88);
+            --text-primary: #2d241c;
+            --text-secondary: #5a4c3e;
+            --text-muted: #8a7a6a;
+            --border-gold: rgba(180, 160, 130, 0.18);
+            --shadow: 0 8px 32px rgba(80, 70, 60, 0.06);
+            --radius: 20px;
+            --font-serif: "PingFang SC", "Microsoft YaHei", "Georgia", serif;
+            --accent: #8fb386;
+        }
+        html {
+            scroll-behavior: smooth;
+        }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
-            background: #f5f0e8;
-            color: #3d2c1a;
+            font-family: var(--font-serif);
+            background: var(--bg-body);
+            color: var(--text-primary);
             overflow-x: hidden;
             -webkit-tap-highlight-color: transparent;
             min-height: 100vh;
             width: 100%;
             max-width: 100vw;
+        }
+
+        /* ===== 交互 Canvas ===== */
+        #interactionCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.7;
+            mix-blend-mode: screen;
+        }
+
+        .vignette {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+            background: radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.03) 100%);
+        }
+        .film-grain {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+            opacity: 0.008;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+            background-repeat: repeat;
+            background-size: 256px 256px;
         }
 
         /* ===== 启动页 ===== */
@@ -37,7 +91,7 @@
             text-align: center;
             padding: 30px 24px;
             cursor: pointer;
-            transition: opacity 0.8s ease, transform 0.8s ease;
+            transition: opacity 0.9s ease, transform 0.9s ease;
             background-image: url('背景1.jpg');
             background-size: cover;
             background-position: center;
@@ -50,7 +104,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.10);
+            background: rgba(255, 255, 255, 0.06);
             pointer-events: none;
             z-index: 0;
         }
@@ -60,7 +114,7 @@
         }
         .splash.hide {
             opacity: 0;
-            transform: scale(1.06);
+            transform: scale(1.08);
             pointer-events: none;
         }
         .splash .quote {
@@ -70,7 +124,7 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            margin-bottom: 6px;
+            margin-bottom: 8px;
             line-height: 1.4;
             opacity: 0;
             transform: translateY(30px);
@@ -88,14 +142,14 @@
             opacity: 0;
             transform: translateY(30px);
             animation: splashIn 0.8s 0.4s forwards ease-out;
-            filter: drop-shadow(0 2px 12px rgba(0, 0, 0, 0.08));
+            filter: drop-shadow(0 2px 20px rgba(0, 0, 0, 0.04));
         }
         .splash .hint {
             margin-top: 24px;
             font-size: 0.85rem;
-            color: rgba(255, 255, 255, 0.85);
-            background: rgba(0, 0, 0, 0.16);
-            padding: 5px 20px;
+            color: rgba(60, 50, 40, 0.7);
+            background: rgba(255, 255, 255, 0.5);
+            padding: 6px 24px;
             border-radius: 40px;
             backdrop-filter: blur(4px);
             letter-spacing: 2px;
@@ -131,11 +185,12 @@
             background-position: center;
             background-attachment: fixed;
             background-blend-mode: overlay;
-            background-color: rgba(245, 240, 232, 0.70);
+            background-color: rgba(247, 244, 240, 0.78);
+            position: relative;
         }
         .main.active {
             display: block;
-            animation: mainFadeIn 0.6s ease forwards;
+            animation: mainFadeIn 0.7s ease forwards;
         }
         @keyframes mainFadeIn {
             to {
@@ -143,15 +198,162 @@
             }
         }
 
-        /* ===== 每个板块占满一屏 ===== */
+        /* ===== 固定顶部导航 ===== */
+        .sticky-nav {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(255, 252, 248, 0.92);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-gold);
+            padding: 6px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: nowrap;
+            gap: 6px;
+            box-shadow: 0 2px 16px rgba(0, 0, 0, 0.04);
+        }
+        .sticky-nav .nav-scroll {
+            display: flex;
+            gap: 4px;
+            overflow-x: auto;
+            padding: 2px 0;
+            flex: 1;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .sticky-nav .nav-scroll::-webkit-scrollbar {
+            display: none;
+        }
+        .sticky-nav .nav-scroll a {
+            flex-shrink: 0;
+            font-size: 0.7rem;
+            padding: 4px 10px;
+            border-radius: 40px;
+            background: rgba(180, 160, 130, 0.08);
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: 0.2s;
+            white-space: nowrap;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+        }
+        .sticky-nav .nav-scroll a:hover,
+        .sticky-nav .nav-scroll a:active {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .sticky-nav .menu-btn {
+            flex-shrink: 0;
+            background: none;
+            border: none;
+            font-size: 1.6rem;
+            color: var(--text-primary);
+            cursor: pointer;
+            padding: 2px 6px;
+            line-height: 1;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .sticky-nav .menu-btn:hover {
+            transform: scale(1.1);
+        }
+
+        /* ===== 侧边抽屉 ===== */
+        .drawer-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 999;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(4px);
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .drawer-overlay.active {
+            display: block;
+            opacity: 1;
+        }
+        .drawer {
+            position: fixed;
+            top: 0;
+            left: -280px;
+            width: 280px;
+            height: 100%;
+            background: var(--bg-card);
+            backdrop-filter: blur(16px);
+            border-right: 1px solid var(--border-gold);
+            box-shadow: 4px 0 32px rgba(0, 0, 0, 0.08);
+            z-index: 1000;
+            padding: 24px 18px;
+            overflow-y: auto;
+            transition: left 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .drawer.open {
+            left: 0;
+        }
+        .drawer .drawer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-gold);
+        }
+        .drawer .drawer-header span {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .drawer .drawer-header .close-drawer {
+            font-size: 1.8rem;
+            cursor: pointer;
+            color: var(--text-muted);
+            background: none;
+            border: none;
+            line-height: 1;
+        }
+        .drawer .drawer-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .drawer .drawer-list a {
+            padding: 10px 14px;
+            border-radius: 12px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: 0.2s;
+            background: rgba(180, 160, 130, 0.04);
+            border: 1px solid transparent;
+        }
+        .drawer .drawer-list a:hover,
+        .drawer .drawer-list a:active {
+            background: rgba(108, 99, 255, 0.08);
+            border-color: var(--accent);
+            color: var(--text-primary);
+        }
+
+        /* ===== 板块基础 ===== */
         .section-block {
             min-height: 100vh;
-            padding: 28px 18px 30px;
+            padding: 28px 18px 32px;
             display: flex;
             flex-direction: column;
             justify-content: center;
             position: relative;
+            z-index: 2;
             scroll-snap-align: start;
+            border-bottom: 1px solid rgba(180, 160, 130, 0.04);
         }
         .section-block .title {
             font-size: 1.2rem;
@@ -159,22 +361,22 @@
             margin-bottom: 14px;
             display: flex;
             align-items: center;
-            gap: 8px;
-            color: #3d2c1a;
+            gap: 10px;
+            color: var(--text-primary);
+            letter-spacing: 2px;
         }
         .section-block .title::after {
             content: '';
             flex: 1;
             height: 2px;
-            background: linear-gradient(90deg, #8fb386, transparent);
+            background: linear-gradient(90deg, rgba(180, 160, 130, 0.3), transparent);
             border-radius: 4px;
         }
 
-        /* ===== 流动式动画 ===== */
         .flow-item {
             opacity: 0;
-            transform: translateY(35px);
-            transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1), transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+            transform: translateY(40px);
+            transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1), transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
             will-change: opacity, transform;
         }
         .flow-item.visible {
@@ -182,18 +384,27 @@
             transform: translateY(0);
         }
 
-        /* ===== 头像卡片 ===== */
+        /* ===== 头像卡片（背景8） ===== */
+        .profile-card-wrap {
+            background-image: url('背景8.jpg');
+            background-size: cover;
+            background-position: center;
+            background-blend-mode: overlay;
+            background-color: rgba(247, 244, 240, 0.2);
+            border-radius: var(--radius);
+            padding: 4px;
+        }
         .profile-card {
-            background: rgba(255, 252, 245, 0.82);
-            border-radius: 20px;
-            padding: 28px 20px 22px;
-            border: 1px solid rgba(143, 179, 134, 0.35);
-            box-shadow: 0 8px 32px rgba(80, 70, 50, 0.08);
+            background: var(--bg-card);
+            backdrop-filter: blur(6px);
+            border-radius: var(--radius);
+            padding: 28px 20px 24px;
+            border: 1px solid var(--border-gold);
+            box-shadow: var(--shadow);
             display: flex;
             flex-direction: column;
             align-items: center;
             text-align: center;
-            backdrop-filter: blur(4px);
             width: 100%;
         }
         .profile-card .avatar {
@@ -201,38 +412,67 @@
             height: 100px;
             border-radius: 50%;
             object-fit: cover;
-            border: 3px solid #8fb386;
-            box-shadow: 0 0 30px rgba(143, 179, 134, 0.25);
+            border: 3px solid var(--accent);
+            box-shadow: 0 0 30px rgba(143, 179, 134, 0.08);
             margin-bottom: 10px;
         }
         .profile-card .pname {
             font-size: 1.8rem;
             font-weight: 700;
-            color: #3d2c1a;
+            color: var(--text-primary);
         }
         .profile-card .ptitle {
             font-size: 0.88rem;
-            color: #5a4a35;
+            color: var(--text-muted);
             margin-bottom: 4px;
+            letter-spacing: 1px;
         }
         .profile-card .bio {
             font-size: 0.88rem;
-            color: #5a4a35;
+            color: var(--text-secondary);
             line-height: 1.7;
             max-width: 440px;
             margin-bottom: 6px;
         }
+        .profile-card .id-photo {
+            width: 80px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 12px;
+            border: 2px solid var(--border-gold);
+            margin: 6px 0 10px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+        }
 
-        /* ===== 碰碰车技能 ===== */
+        .edu-highlight {
+            background: rgba(180, 160, 130, 0.05);
+            border-radius: 14px;
+            padding: 16px 18px;
+            border-left: 3px solid var(--accent);
+            margin-bottom: 10px;
+        }
+        .edu-highlight .edu-main {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .edu-highlight .edu-sub {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+            line-height: 1.6;
+        }
+
+        /* ===== 碰碰车 ===== */
         .bumper-wrapper {
             width: 100%;
-            height: 55vh;
-            min-height: 340px;
+            height: 50vh;
+            min-height: 320px;
             position: relative;
             margin: 6px 0 4px;
             border-radius: 16px;
-            background: rgba(143, 179, 134, 0.06);
-            border: 1px solid rgba(143, 179, 134, 0.12);
+            background: rgba(255, 250, 245, 0.3);
+            border: 1px solid var(--border-gold);
             overflow: hidden;
             touch-action: none;
         }
@@ -242,35 +482,34 @@
             border-radius: 40px;
             font-size: 0.78rem;
             font-weight: 500;
-            color: #3d2c1a;
-            background: rgba(143, 179, 134, 0.15);
-            border: 1px solid rgba(143, 179, 134, 0.3);
+            color: var(--text-secondary);
+            background: rgba(255, 250, 245, 0.7);
+            border: 1px solid var(--border-gold);
             white-space: nowrap;
             cursor: default;
             backdrop-filter: blur(2px);
             will-change: transform;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.02);
             transition: background 0.15s, color 0.15s, border-color 0.15s;
             user-select: none;
             touch-action: none;
             pointer-events: none;
         }
         .bumper-tag:hover {
-            background: #8fb386;
+            background: var(--accent);
             color: #fff;
-            border-color: #8fb386;
+            border-color: var(--accent);
             z-index: 10;
         }
 
-        /* ===== 卡片通用 ===== */
         .card {
-            background: rgba(255, 252, 245, 0.82);
+            background: var(--bg-card);
+            backdrop-filter: blur(4px);
             border-radius: 16px;
             padding: 14px 16px;
-            border: 1px solid rgba(143, 179, 134, 0.35);
-            box-shadow: 0 4px 16px rgba(80, 70, 50, 0.06);
+            border: 1px solid var(--border-gold);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02);
             margin-bottom: 10px;
-            backdrop-filter: blur(4px);
             width: 100%;
         }
 
@@ -283,11 +522,12 @@
         .exp-item .exp-title {
             font-weight: 700;
             font-size: 0.95rem;
+            color: var(--text-primary);
         }
         .exp-item .exp-period {
             font-size: 0.65rem;
-            color: #7a6a55;
-            background: rgba(143, 179, 134, 0.12);
+            color: var(--text-muted);
+            background: rgba(180, 160, 130, 0.08);
             padding: 0 10px;
             border-radius: 40px;
         }
@@ -300,7 +540,7 @@
             padding-left: 16px;
             position: relative;
             font-size: 0.82rem;
-            color: #5a4a35;
+            color: var(--text-secondary);
             margin-bottom: 2px;
             line-height: 1.5;
         }
@@ -308,7 +548,7 @@
             content: "▹";
             position: absolute;
             left: 0;
-            color: #8fb386;
+            color: var(--accent);
         }
 
         .skill-item .skill-name {
@@ -316,100 +556,311 @@
             justify-content: space-between;
             font-weight: 600;
             font-size: 0.88rem;
+            color: var(--text-primary);
         }
         .skill-item .skill-name .pct {
-            color: #4a6b3f;
+            color: var(--accent);
         }
         .skill-item .skill-desc {
             font-size: 0.72rem;
-            color: #7a6a55;
+            color: var(--text-muted);
             margin: 2px 0 5px;
         }
         .skill-item .progress {
             width: 100%;
             height: 4px;
-            background: rgba(143, 179, 134, 0.2);
+            background: rgba(180, 160, 130, 0.12);
             border-radius: 8px;
             overflow: hidden;
         }
         .skill-item .progress .bar {
             height: 100%;
             border-radius: 8px;
-            background: linear-gradient(90deg, #8fb386, #4a6b3f);
+            background: linear-gradient(90deg, var(--accent), #b8c9a5);
             width: 0%;
         }
 
-        .project-item .proj-header {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            align-items: baseline;
+        /* ===== 火柴人拉框框 ===== */
+        #stickmanCanvasWrap {
+            width: 100%;
+            height: 300px;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid var(--border-gold);
+            background-image: url('背景7.jpg');
+            background-size: cover;
+            background-position: center;
+            background-blend-mode: overlay;
+            background-color: rgba(247, 244, 240, 0.15);
+            position: relative;
+            margin: 8px 0 10px;
         }
-        .project-item .proj-name {
-            font-weight: 700;
-            font-size: 0.95rem;
+        #stickmanCanvasWrap canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* ===== 六边形能力图 ===== */
+        #hexagonWrap {
+            width: 100%;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid var(--border-gold);
+            background: rgba(10, 8, 20, 0.75);
+            position: relative;
+            margin: 10px 0 6px;
+            aspect-ratio: 1 / 1;
+            min-height: 240px;
+        }
+        #hexagonWrap canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .hex-hint {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.55rem;
+            color: rgba(200, 200, 220, 0.4);
+            background: rgba(0, 0, 0, 0.2);
+            padding: 2px 14px;
+            border-radius: 30px;
+            backdrop-filter: blur(4px);
+            pointer-events: none;
+            z-index: 5;
+            white-space: nowrap;
+            letter-spacing: 1px;
+        }
+
+        .typing-bg-wrap {
+            background-image: url('背景9.jpg');
+            background-size: cover;
+            background-position: center;
+            background-blend-mode: overlay;
+            background-color: rgba(247, 244, 240, 0.1);
+            border-radius: 16px;
+            padding: 4px;
+            margin-top: 6px;
+        }
+        .typing-bg-wrap .card {
+            background: rgba(255, 252, 248, 0.75);
+            backdrop-filter: blur(6px);
+        }
+
+        /* ===== 项目作品 ===== */
+        .project-item .proj-name.grad-blue-green {
+            background: linear-gradient(90deg, #4dabf7, #69db7c);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .project-item .proj-name.grad-blue-purple {
+            background: linear-gradient(90deg, #4dabf7, #cc99ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .project-item .proj-name.grad-pink-blue {
+            background: linear-gradient(90deg, #ff6b9d, #4dabf7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .project-item .proj-name.grad-red-purple {
+            background: linear-gradient(90deg, #ff6b6b, #cc99ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
         .project-item .proj-tech {
             font-size: 0.6rem;
-            color: #7a6a55;
-            background: rgba(143, 179, 134, 0.12);
+            color: var(--text-muted);
+            background: rgba(180, 160, 130, 0.08);
             padding: 0 10px;
             border-radius: 40px;
         }
         .project-item .proj-desc {
             font-size: 0.8rem;
-            color: #5a4a35;
+            color: var(--text-secondary);
             margin: 3px 0 4px;
         }
         .project-item .proj-attach {
             display: inline-block;
-            font-size: 0.6rem;
-            color: #4a6b3f;
+            font-size: 0.9rem;
+            color: var(--accent);
             text-decoration: none;
-            border: 1px solid rgba(143, 179, 134, 0.35);
+            border: 1px solid var(--border-gold);
             padding: 1px 12px;
             border-radius: 30px;
             transition: 0.2s;
-            background: rgba(143, 179, 134, 0.06);
             margin-top: 3px;
         }
         .project-item .proj-attach:hover {
-            background: #8fb386;
+            background: var(--accent);
             color: #fff;
         }
-
-        .edu-item .edu-meta {
-            font-size: 0.85rem;
-            color: #5a4a35;
+        .project-item .proj-demo-img {
+            margin-top: 8px;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid var(--border-gold);
         }
-        .edu-item .edu-meta span {
-            color: #7a6a55;
+        .project-item .proj-demo-img img {
+            width: 100%;
+            height: auto;
+            display: block;
         }
 
-        /* ===== Three.js 容器 (摄影球体) ===== */
-        #photoSphereContainer {
+        /* ===== PPT 板块 ===== */
+        .ppt-section {
+            margin-top: 14px;
+        }
+        .ppt-section .ppt-label {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+        .ppt-link-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .ppt-link-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: rgba(255, 250, 245, 0.5);
+            border-radius: 12px;
+            border: 1px solid var(--border-gold);
+            transition: 0.25s;
+            text-decoration: none;
+            color: var(--text-primary);
+        }
+        .ppt-link-item:hover {
+            background: rgba(180, 160, 130, 0.06);
+            border-color: rgba(180, 160, 130, 0.25);
+            transform: translateX(4px);
+        }
+        .ppt-link-item .ppt-icon {
+            font-size: 1.6rem;
+            flex-shrink: 0;
+        }
+        .ppt-link-item .ppt-info {
+            display: flex;
+            flex-direction: column;
+        }
+        .ppt-link-item .ppt-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        .ppt-link-item .ppt-desc {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+        .ppt-screenshot {
+            margin-top: 12px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border-gold);
+            background: #fff;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+        }
+        .ppt-screenshot img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        .ppt-screenshot .caption {
+            padding: 6px 14px;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            background: rgba(255, 252, 248, 0.6);
+            text-align: center;
+            border-top: 1px solid var(--border-gold);
+        }
+
+        /* ===== 游戏容器 ===== */
+        .game-iframe-container {
+            width: 100%;
+            height: 75vh;
+            min-height: 380px;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid var(--border-gold);
+            background: #000;
+            position: relative;
+        }
+        .game-iframe-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+
+        /* ===== 3D 容器 ===== */
+        .three-container {
             width: 100%;
             aspect-ratio: 1 / 1;
             border-radius: 16px;
             overflow: hidden;
-            border: 1px solid rgba(143, 179, 134, 0.3);
-            background: rgba(0, 0, 0, 0.03);
+            border: 1px solid var(--border-gold);
+            background: rgba(0, 0, 0, 0.015);
             position: relative;
             touch-action: none;
-            min-height: 320px;
+            min-height: 280px;
         }
-        #photoSphereContainer canvas {
+        .three-container canvas {
             display: block;
             width: 100% !important;
             height: 100% !important;
         }
-        .photo-sphere-hint {
+        .three-hint {
             position: absolute;
             bottom: 14px;
             left: 50%;
             transform: translateX(-50%);
             font-size: 0.6rem;
-            color: rgba(255, 255, 255, 0.7);
+            color: rgba(80, 70, 60, 0.3);
+            background: rgba(255, 255, 255, 0.4);
+            padding: 3px 16px;
+            border-radius: 30px;
+            backdrop-filter: blur(4px);
+            pointer-events: none;
+            z-index: 10;
+            white-space: nowrap;
+            letter-spacing: 1px;
+        }
+
+        /* ===== 网状圆球 ===== */
+        #globeContainer {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid var(--border-gold);
+            background: radial-gradient(ellipse at center, #0a0a1a, #050510);
+            position: relative;
+            touch-action: none;
+            min-height: 380px;
+        }
+        #globeContainer canvas {
+            display: block;
+            width: 100% !important;
+            height: 100% !important;
+        }
+        .globe-hint {
+            position: absolute;
+            bottom: 14px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.6rem;
+            color: rgba(200, 200, 220, 0.4);
             background: rgba(0, 0, 0, 0.3);
             padding: 3px 16px;
             border-radius: 30px;
@@ -417,153 +868,195 @@
             pointer-events: none;
             z-index: 10;
             white-space: nowrap;
+            letter-spacing: 1px;
+        }
+        .globe-summary-btn {
+            display: block;
+            margin: 14px auto 0;
+            padding: 10px 32px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+            border: none;
+            border-radius: 40px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+            font-family: var(--font-serif);
+            letter-spacing: 2px;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+        }
+        .globe-summary-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px rgba(102, 126, 234, 0.4);
+        }
+        .globe-summary-btn:active {
+            transform: scale(0.97);
         }
 
-        /* ===== 证书墙 ===== */
-        .cert-wall {
-            background-image: url('背景3.jpg');
-            background-size: cover;
-            background-position: center;
-            background-blend-mode: overlay;
-            background-color: rgba(245, 240, 232, 0.55);
-            border-radius: 16px;
-            padding: 16px 14px 18px;
-            border: 1px solid rgba(143, 179, 134, 0.35);
-            box-shadow: 0 4px 16px rgba(80, 70, 50, 0.06);
-            backdrop-filter: blur(4px);
-            width: 100%;
-        }
-        .cert-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-            margin: 10px 0 14px;
-        }
-        .cert-grid .cert-item {
-            border-radius: 10px;
-            overflow: hidden;
-            aspect-ratio: 1 / 1.3;
-            border: 2px solid rgba(143, 179, 134, 0.3);
-            cursor: pointer;
-            transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
-            background: rgba(255, 255, 255, 0.2);
-            position: relative;
-        }
-        .cert-grid .cert-item:hover {
-            transform: scale(1.04);
-            box-shadow: 0 8px 28px rgba(74, 107, 63, 0.18);
-            border-color: #8fb386;
-            z-index: 2;
-        }
-        .cert-grid .cert-item img {
+        /* ===== 时间线模态框 ===== */
+        .timeline-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
-            object-fit: cover;
-            display: block;
+            z-index: 6000;
+            background: rgba(5, 5, 16, 0.92);
+            backdrop-filter: blur(16px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            cursor: pointer;
         }
-        .cert-grid .cert-item .cert-label {
-            position: absolute;
-            bottom: 3px;
-            right: 5px;
-            font-size: 0.45rem;
-            color: rgba(255, 255, 255, 0.6);
-            background: rgba(0, 0, 0, 0.3);
-            padding: 0 7px;
-            border-radius: 20px;
-            backdrop-filter: blur(2px);
-            pointer-events: none;
+        .timeline-modal.active {
+            display: flex;
         }
-        .cert-wall .download-zip {
-            display: inline-block;
-            padding: 5px 18px;
-            background: #4a6b3f;
-            color: #fff;
-            border-radius: 40px;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 0.75rem;
-            margin: 4px 0 10px;
-            box-shadow: 0 0 20px rgba(74, 107, 63, 0.15);
-            transition: 0.2s;
-        }
-        .cert-wall .download-zip:hover {
-            background: #8fb386;
-        }
-        .cert-wall .cert-list {
-            list-style: none;
-            padding: 0;
-            margin-top: 4px;
-        }
-        .cert-wall .cert-list li {
-            padding-left: 16px;
+        .timeline-modal .tl-content {
+            background: rgba(20, 20, 40, 0.85);
+            border-radius: 24px;
+            padding: 28px 24px 32px;
+            max-width: 480px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
             position: relative;
-            font-size: 0.72rem;
-            color: #5a4a35;
-            margin-bottom: 2px;
-            line-height: 1.4;
+            cursor: default;
         }
-        .cert-wall .cert-list li::before {
-            content: "🏅";
+        .timeline-modal .tl-close {
             position: absolute;
-            left: -2px;
-            top: 0;
-            font-size: 0.6rem;
+            top: 14px;
+            right: 18px;
+            font-size: 1.8rem;
+            color: rgba(255, 255, 255, 0.4);
+            cursor: pointer;
+            transition: 0.2s;
+            background: none;
+            border: none;
+            font-family: inherit;
+        }
+        .timeline-modal .tl-close:hover {
+            color: #fff;
+        }
+        .timeline-modal .tl-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #fff;
+            text-align: center;
+            margin-bottom: 24px;
+            letter-spacing: 4px;
+            background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .tl-svg-wrap {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+        .tl-svg-wrap svg {
+            width: 100%;
+            max-height: 460px;
+            filter: drop-shadow(0 0 20px rgba(102, 126, 234, 0.15));
         }
 
-        /* ===== 联系我 (背景3.jpg) ===== */
+        /* ===== 联系我 ===== */
         .contact-section {
             background-image: url('背景3.jpg');
             background-size: cover;
             background-position: center;
             background-blend-mode: overlay;
-            background-color: rgba(245, 240, 232, 0.60);
+            background-color: rgba(247, 244, 240, 0.75);
         }
         .contact-me-grid {
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 18px;
             width: 100%;
-            margin: 6px 0 12px;
+            margin: 10px 0 16px;
         }
         .contact-me-card {
-            background: rgba(255, 252, 245, 0.82);
-            border-radius: 16px;
-            padding: 22px 18px;
-            border: 1px solid rgba(143, 179, 134, 0.35);
-            box-shadow: 0 4px 16px rgba(80, 70, 50, 0.06);
-            backdrop-filter: blur(4px);
+            border-radius: var(--radius);
+            padding: 20px 22px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
+            backdrop-filter: blur(6px);
+            border: 1px solid var(--border-gold);
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+            min-height: 80px;
+            background: rgba(255, 252, 248, 0.7);
+        }
+        .contact-me-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            opacity: 0.28;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .contact-me-card.phone-card::before {
+            background-image: url('背景4.jpg');
+        }
+        .contact-me-card.email-card::before {
+            background-image: url('背景5.jpg');
+        }
+        .contact-me-card>* {
+            position: relative;
+            z-index: 1;
         }
         .contact-me-card:active {
             transform: scale(0.97);
         }
+        .contact-me-card:hover {
+            border-color: rgba(143, 179, 134, 0.25);
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.05);
+        }
         .contact-me-card .left {
             display: flex;
             align-items: center;
-            gap: 14px;
+            gap: 16px;
         }
         .contact-me-card .left .icon {
-            font-size: 2rem;
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            object-fit: contain;
+            background: rgba(255, 250, 245, 0.6);
+            padding: 6px;
+            border: 1px solid var(--border-gold);
         }
         .contact-me-card .left .label {
             font-size: 1.1rem;
             font-weight: 600;
-            color: #3d2c1a;
+            color: var(--text-primary);
+            letter-spacing: 1px;
         }
         .contact-me-card .right-arrow {
-            font-size: 1.4rem;
-            color: #8fb386;
+            font-size: 1.6rem;
+            color: var(--accent);
+            opacity: 0.4;
+            font-weight: 300;
         }
 
         .qr-row {
             display: flex;
             justify-content: center;
-            gap: 28px;
-            margin-top: 8px;
+            gap: 32px;
+            margin-top: 12px;
             flex-wrap: wrap;
         }
         .qr-row .qr-item {
@@ -571,7 +1064,7 @@
             flex-direction: column;
             align-items: center;
             cursor: pointer;
-            transition: transform 0.2s;
+            transition: transform 0.25s;
         }
         .qr-row .qr-item:hover {
             transform: scale(1.05);
@@ -580,34 +1073,35 @@
             width: 72px;
             height: 72px;
             border-radius: 14px;
-            border: 2px solid rgba(143, 179, 134, 0.35);
+            border: 2px solid var(--border-gold);
             object-fit: cover;
-            background: #fff;
+            background: #faf7f2;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
         }
         .qr-row .qr-item .label {
             font-size: 0.65rem;
-            color: #7a6a55;
-            margin-top: 3px;
+            color: var(--text-muted);
+            margin-top: 4px;
+            letter-spacing: 1px;
         }
 
-        /* ===== 结尾语 (背景3.jpg + 布质纹理) ===== */
+        /* ===== 结尾语 ===== */
         .finale-section {
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 30px 24px;
-            background-image: url('背景3.jpg');
+            background-image: url('背景6.jpg');
             background-size: cover;
             background-position: center;
             background-blend-mode: overlay;
-            background-color: rgba(245, 240, 232, 0.55);
+            background-color: rgba(247, 244, 240, 0.55);
             position: relative;
             width: 100%;
             text-align: center;
             flex-direction: column;
         }
-        /* 布质纹理叠加 */
         .finale-section::before {
             content: '';
             position: absolute;
@@ -615,17 +1109,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-image:
-                repeating-linear-gradient(45deg,
-                    rgba(180, 160, 130, 0.08) 0px,
-                    rgba(180, 160, 130, 0.08) 2px,
-                    transparent 2px,
-                    transparent 6px),
-                repeating-linear-gradient(-45deg,
-                    rgba(180, 160, 130, 0.08) 0px,
-                    rgba(180, 160, 130, 0.08) 2px,
-                    transparent 2px,
-                    transparent 6px);
+            background-image: repeating-linear-gradient(45deg, rgba(180, 160, 130, 0.02) 0px, rgba(180, 160, 130, 0.02) 2px, transparent 2px, transparent 6px), repeating-linear-gradient(-45deg, rgba(180, 160, 130, 0.02) 0px, rgba(180, 160, 130, 0.02) 2px, transparent 2px, transparent 6px);
             background-size: 10px 10px;
             pointer-events: none;
             z-index: 0;
@@ -643,29 +1127,23 @@
         .finale-text .line1 {
             font-size: 2.6rem;
             font-weight: 800;
-            color: #d4b896;
+            color: #5a4a35;
             letter-spacing: 6px;
             line-height: 1.4;
-            text-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-            font-family: "PingFang SC", "Microsoft YaHei", serif;
+            text-shadow: 0 2px 24px rgba(255, 255, 255, 0.15);
+            font-family: var(--font-serif);
         }
         .finale-text .line2 {
             font-size: 2.6rem;
             font-weight: 800;
-            color: #c3b091;
+            color: #8a7a6a;
             letter-spacing: 6px;
             line-height: 1.4;
-            text-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-            font-family: "PingFang SC", "Microsoft YaHei", serif;
-        }
-        .finale-text .quote-mark {
-            font-size: 2.8rem;
-            font-weight: 300;
-            color: rgba(180, 160, 130, 0.3);
-            line-height: 0.8;
+            text-shadow: 0 2px 24px rgba(255, 255, 255, 0.15);
+            font-family: var(--font-serif);
         }
 
-        /* ===== 模态框 ===== */
+        /* ===== 模态框（用于联系人和详情） ===== */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -673,8 +1151,8 @@
             width: 100%;
             height: 100%;
             z-index: 5000;
-            background: rgba(0, 0, 0, 0.78);
-            backdrop-filter: blur(8px);
+            background: rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(6px);
             display: none;
             align-items: center;
             justify-content: center;
@@ -685,32 +1163,38 @@
             display: flex;
         }
         .modal-overlay .modal-content {
-            background: rgba(255, 252, 245, 0.95);
-            border-radius: 20px;
-            padding: 32px 28px 28px;
+            background: rgba(255, 252, 248, 0.95);
+            backdrop-filter: blur(12px);
+            border-radius: 24px;
+            padding: 36px 28px 32px;
             max-width: 380px;
             width: 100%;
             text-align: center;
             position: relative;
-            backdrop-filter: blur(8px);
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 24px 64px rgba(0, 0, 0, 0.10);
+            border: 1px solid var(--border-gold);
             cursor: default;
+            background-size: cover;
+            background-position: center;
+            background-blend-mode: overlay;
+            transition: background-image 0.3s ease;
         }
         .modal-overlay .modal-content .modal-icon {
-            font-size: 2.8rem;
+            font-size: 3.2rem;
             margin-bottom: 6px;
         }
         .modal-overlay .modal-content .modal-value {
-            font-size: 1.3rem;
+            font-size: 1.4rem;
             font-weight: 600;
-            color: #3d2c1a;
+            color: var(--text-primary);
             word-break: break-all;
-            padding: 8px 0;
+            padding: 10px 0;
+            letter-spacing: 1px;
         }
         .modal-overlay .modal-content .modal-copy-btn {
-            margin-top: 14px;
-            padding: 10px 32px;
-            background: #8fb386;
+            margin-top: 16px;
+            padding: 12px 36px;
+            background: var(--accent);
             color: #fff;
             border: none;
             border-radius: 40px;
@@ -719,16 +1203,20 @@
             cursor: pointer;
             transition: 0.2s;
             font-family: inherit;
+            letter-spacing: 1px;
         }
         .modal-overlay .modal-content .modal-copy-btn:active {
             transform: scale(0.95);
         }
+        .modal-overlay .modal-content .modal-copy-btn:hover {
+            background: #b8c9a5;
+        }
         .modal-overlay .modal-content .modal-close-btn {
             position: absolute;
-            top: 12px;
-            right: 16px;
+            top: 14px;
+            right: 18px;
             font-size: 1.6rem;
-            color: #7a6a55;
+            color: var(--text-muted);
             cursor: pointer;
             transition: 0.2s;
             background: none;
@@ -736,10 +1224,9 @@
             font-family: inherit;
         }
         .modal-overlay .modal-content .modal-close-btn:hover {
-            color: #3d2c1a;
+            color: var(--text-primary);
         }
 
-        /* ===== 图片模态框 ===== */
         .img-modal-overlay {
             position: fixed;
             top: 0;
@@ -747,8 +1234,8 @@
             width: 100%;
             height: 100%;
             z-index: 5100;
-            background: rgba(0, 0, 0, 0.82);
-            backdrop-filter: blur(8px);
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(6px);
             display: none;
             align-items: center;
             justify-content: center;
@@ -762,8 +1249,8 @@
             max-width: 94%;
             max-height: 80vh;
             border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-            border: 2px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 24px 64px rgba(0, 0, 0, 0.12);
+            border: 2px solid var(--border-gold);
             object-fit: contain;
         }
         .img-modal-overlay .close-img-modal {
@@ -771,24 +1258,50 @@
             top: 16px;
             right: 20px;
             font-size: 2rem;
-            color: rgba(255, 255, 255, 0.7);
+            color: rgba(80, 70, 60, 0.5);
             cursor: pointer;
             transition: 0.2s;
-            background: rgba(0, 0, 0, 0.25);
+            background: rgba(255, 255, 255, 0.3);
             border-radius: 50%;
             width: 44px;
             height: 44px;
             display: flex;
             align-items: center;
             justify-content: center;
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--border-gold);
         }
         .img-modal-overlay .close-img-modal:hover {
-            color: #fff;
-            background: rgba(255, 255, 255, 0.12);
+            color: #3d3228;
+            background: rgba(255, 255, 255, 0.5);
         }
 
-        /* ===== 响应式 ===== */
+        /* ===== 音乐按钮（左上角） ===== */
+        .music-toggle {
+            position: fixed;
+            top: 24px;
+            left: 20px;
+            z-index: 4000;
+            background: rgba(255, 252, 248, 0.8);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border-gold);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 1.2rem;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: 0.25s;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .music-toggle:hover {
+            background: var(--accent);
+            color: #fff;
+            transform: scale(1.06);
+        }
+
         @media (max-width: 420px) {
             .splash .quote {
                 font-size: 1.5rem;
@@ -803,13 +1316,9 @@
                 width: 80px;
                 height: 80px;
             }
-            .cert-grid {
-                grid-template-columns: repeat(3, 1fr);
-                gap: 5px;
-            }
             .bumper-wrapper {
-                height: 48vh;
-                min-height: 280px;
+                height: 45vh;
+                min-height: 260px;
             }
             .bumper-tag {
                 font-size: 0.65rem;
@@ -820,10 +1329,12 @@
                 height: 60px;
             }
             .contact-me-card {
-                padding: 18px 14px;
+                padding: 16px 16px;
+                min-height: 70px;
             }
             .contact-me-card .left .icon {
-                font-size: 1.6rem;
+                width: 36px;
+                height: 36px;
             }
             .contact-me-card .left .label {
                 font-size: 0.95rem;
@@ -833,11 +1344,39 @@
                 font-size: 2rem;
                 letter-spacing: 4px;
             }
-            .modal-overlay .modal-content {
-                padding: 24px 20px 22px;
+            .three-container {
+                aspect-ratio: 1 / 1;
+                min-height: 220px;
             }
-            .modal-overlay .modal-content .modal-value {
-                font-size: 1.1rem;
+            #globeContainer {
+                aspect-ratio: 1 / 1;
+                min-height: 300px;
+            }
+            .game-iframe-container {
+                height: 55vh;
+                min-height: 280px;
+            }
+            #stickmanCanvasWrap {
+                height: 220px;
+            }
+            #hexagonWrap {
+                aspect-ratio: 1 / 1;
+                min-height: 200px;
+            }
+            .sticky-nav .nav-scroll a {
+                font-size: 0.6rem;
+                padding: 3px 8px;
+            }
+            .drawer {
+                width: 240px;
+                left: -240px;
+            }
+            .music-toggle {
+                width: 44px;
+                height: 44px;
+                font-size: 1rem;
+                top: 16px;
+                left: 12px;
             }
         }
         @media (max-width: 360px) {
@@ -847,21 +1386,39 @@
             .splash .name {
                 font-size: 2.2rem;
             }
-            .cert-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
             .bumper-wrapper {
-                height: 42vh;
-                min-height: 220px;
+                height: 40vh;
+                min-height: 200px;
             }
             .finale-text .line1,
             .finale-text .line2 {
                 font-size: 1.6rem;
                 letter-spacing: 3px;
             }
+            .three-container {
+                aspect-ratio: 1 / 1;
+                min-height: 180px;
+            }
+            #globeContainer {
+                aspect-ratio: 1 / 1;
+                min-height: 240px;
+            }
+            #stickmanCanvasWrap {
+                height: 180px;
+            }
+            #hexagonWrap {
+                aspect-ratio: 1 / 1;
+                min-height: 160px;
+            }
+            .music-toggle {
+                width: 38px;
+                height: 38px;
+                font-size: 0.9rem;
+                top: 12px;
+                left: 10px;
+            }
         }
 
-        /* ===== 打印 ===== */
         @media print {
             .splash {
                 display: none !important;
@@ -869,7 +1426,7 @@
             .main {
                 display: block !important;
                 opacity: 1 !important;
-                background: #f5f0e8 !important;
+                background: #f7f4f0 !important;
             }
             .flow-item {
                 opacity: 1 !important;
@@ -877,12 +1434,14 @@
                 transition: none !important;
             }
             .modal-overlay,
-            .img-modal-overlay {
+            .img-modal-overlay,
+            .timeline-modal {
                 display: none !important;
             }
-            #photoSphereContainer {
+            .three-container,
+            #globeContainer {
                 aspect-ratio: 1/1;
-                border: 1px solid #ccc;
+                border: 1px solid #ddd;
             }
             .section-block {
                 min-height: auto !important;
@@ -895,6 +1454,33 @@
             }
             .bumper-wrapper {
                 height: 300px !important;
+            }
+            .game-iframe-container {
+                height: 400px !important;
+            }
+            .vignette,
+            .film-grain,
+            #interactionCanvas {
+                display: none !important;
+            }
+            .music-toggle {
+                display: none !important;
+            }
+            #stickmanCanvasWrap {
+                height: 200px !important;
+                border: 1px solid #ccc;
+            }
+            #hexagonWrap {
+                aspect-ratio: 1/1;
+                height: 200px !important;
+                border: 1px solid #ccc;
+            }
+            .sticky-nav {
+                display: none !important;
+            }
+            .drawer-overlay,
+            .drawer {
+                display: none !important;
             }
         }
 
@@ -926,7 +1512,10 @@
 </head>
 <body>
 
-    <!-- ===== 启动页 ===== -->
+    <canvas id="interactionCanvas"></canvas>
+    <div class="vignette"></div>
+    <div class="film-grain"></div>
+
     <div class="splash" id="splash">
         <div class="splash-content">
             <div class="quote">千山我独行，不必相送</div>
@@ -935,9 +1524,8 @@
         </div>
     </div>
 
-    <!-- ===== 模态框（联系我-手机号/邮件） ===== -->
     <div class="modal-overlay" id="modalOverlay">
-        <div class="modal-content" id="modalContent">
+        <div class="modal-content">
             <button class="modal-close-btn" id="modalCloseBtn">✕</button>
             <div class="modal-icon" id="modalIcon">📱</div>
             <div class="modal-value" id="modalValue">13800000000</div>
@@ -945,84 +1533,170 @@
         </div>
     </div>
 
-    <!-- ===== 图片模态框 ===== -->
     <div class="img-modal-overlay" id="imgModalOverlay">
         <span class="close-img-modal" id="closeImgModal">✕</span>
         <img id="imgModalSrc" src="" alt="大图" />
     </div>
 
-    <!-- ===== 主内容 ===== -->
+    <div class="timeline-modal" id="timelineModal">
+        <div class="tl-content">
+            <button class="tl-close" id="tlClose">✕</button>
+            <div class="tl-title">✦ 未来规划 · 时间轴 ✦</div>
+            <div class="tl-svg-wrap">
+                <svg viewBox="0 0 420 400" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#667eea" stop-opacity="0.15"/><stop offset="100%" stop-color="#764ba2" stop-opacity="0.05"/></linearGradient>
+                        <linearGradient id="g2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#f093fb" stop-opacity="0.10"/><stop offset="100%" stop-color="#f5576c" stop-opacity="0.05"/></linearGradient>
+                        <filter id="glow"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                    </defs>
+                    <rect width="420" height="400" fill="url(#g1)" rx="12"/>
+                    <polyline points="80,60 210,90 300,210 120,310" stroke="rgba(255,255,255,0.15)" stroke-width="2" fill="none" stroke-dasharray="6,4" opacity="0.6"/>
+                    <circle cx="80" cy="60" r="18" fill="rgba(102,126,234,0.2)" filter="url(#glow)"/>
+                    <circle cx="210" cy="90" r="18" fill="rgba(118,75,162,0.2)" filter="url(#glow)"/>
+                    <circle cx="300" cy="210" r="18" fill="rgba(240,147,251,0.2)" filter="url(#glow)"/>
+                    <circle cx="120" cy="310" r="18" fill="rgba(245,87,108,0.2)" filter="url(#glow)"/>
+                    <circle cx="80" cy="60" r="8" fill="#667eea" stroke="#fff" stroke-width="1.5" filter="url(#glow)"/>
+                    <circle cx="210" cy="90" r="8" fill="#764ba2" stroke="#fff" stroke-width="1.5" filter="url(#glow)"/>
+                    <circle cx="300" cy="210" r="8" fill="#f093fb" stroke="#fff" stroke-width="1.5" filter="url(#glow)"/>
+                    <circle cx="120" cy="310" r="8" fill="#f5576c" stroke="#fff" stroke-width="1.5" filter="url(#glow)"/>
+                    <line x1="30" y1="80" x2="130" y2="80" stroke="rgba(102,126,234,0.3)" stroke-width="1"/>
+                    <line x1="160" y1="105" x2="260" y2="105" stroke="rgba(118,75,162,0.3)" stroke-width="1"/>
+                    <line x1="250" y1="225" x2="350" y2="225" stroke="rgba(240,147,251,0.3)" stroke-width="1"/>
+                    <line x1="70" y1="325" x2="170" y2="325" stroke="rgba(245,87,108,0.3)" stroke-width="1"/>
+                    <text x="80" y="75" text-anchor="middle" class="tl-node-year">2026-2027</text>
+                    <text x="210" y="105" text-anchor="middle" class="tl-node-year">2027-2028</text>
+                    <text x="300" y="225" text-anchor="middle" class="tl-node-year">2028-2029</text>
+                    <text x="120" y="325" text-anchor="middle" class="tl-node-year">2029-2030</text>
+                    <text x="80" y="42" text-anchor="middle" class="tl-node-label" fill="#667eea">大 一</text>
+                    <text x="210" y="72" text-anchor="middle" class="tl-node-label" fill="#764ba2">大 二</text>
+                    <text x="300" y="192" text-anchor="middle" class="tl-node-label" fill="#f093fb">大 三</text>
+                    <text x="120" y="292" text-anchor="middle" class="tl-node-label" fill="#f5576c">大 四</text>
+                    <text x="80" y="100" text-anchor="middle" class="tl-node-desc" font-size="7.5"><tspan x="80" dy="0">备考四级 · 系统学习</tspan><tspan x="80" dy="11">知识库 · 拓展人脉</tspan><tspan x="80" dy="11">创业尝试 · 竞赛准备</tspan></text>
+                    <text x="210" y="130" text-anchor="middle" class="tl-node-desc" font-size="7.5"><tspan x="210" dy="0">六级+雅思 · 研究方向</tspan><tspan x="210" dy="11">知识库做强 · 自媒体</tspan><tspan x="210" dy="11">创业起步 · 上层人脉</tspan><tspan x="210" dy="11">竞赛参与</tspan></text>
+                    <text x="300" y="250" text-anchor="middle" class="tl-node-desc" font-size="7.5"><tspan x="300" dy="0">雅思 · 专业研究</tspan><tspan x="300" dy="11">跨考方向 · 考研准备</tspan><tspan x="300" dy="11">公司初步建立</tspan><tspan x="300" dy="11">知识库扩充</tspan></text>
+                    <text x="120" y="350" text-anchor="middle" class="tl-node-desc" font-size="7.5"><tspan x="120" dy="0">考研冲刺 · 跨考专攻</tspan><tspan x="120" dy="11">公司步入正轨</tspan><tspan x="120" dy="11">优化能力 · 全面发展</tspan></text>
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- 音乐按钮 -->
+    <button class="music-toggle" id="musicToggle" aria-label="音乐开关">🔇</button>
+    <audio id="bgMusic" src="循迹.mp3" loop preload="auto"></audio>
+
     <div class="main" id="main">
 
-        <!-- ===== 1. 头像卡片 ===== -->
-        <div class="section-block flow-item" style="justify-content:center; min-height:100vh; padding-top:30px;">
-            <div class="profile-card">
-                <img src="个人头像.jpg" alt="刘子铉" class="avatar" />
-                <div class="pname">刘子铉</div>
-                <div class="ptitle">软件工程 · AI 应用开发者</div>
-                <div class="bio">
-                    软件工程在读，暑期自学 AI 获近 20 项权威认证。擅长将 AI 能力快速转化为可落地的产品与工具，
-                    从智能对话 Agent 到 AI 音乐游戏，持续用技术创造价值。
+        <!-- ===== 固定导航 ===== -->
+        <div class="sticky-nav" id="stickyNav">
+            <button class="menu-btn" id="menuToggle" aria-label="菜单">☰</button>
+            <div class="nav-scroll" id="navScroll">
+                <a href="#section-profile">自我介绍</a>
+                <a href="#section-education">教育背景</a>
+                <a href="#section-skills">专业技能</a>
+                <a href="#section-practice">实践经历</a>
+                <a href="#section-projects">项目经历</a>
+                <a href="#section-works">项目作品</a>
+                <a href="#section-games">自制游戏</a>
+                <a href="#section-photo">摄影</a>
+                <a href="#section-cert">AI证书</a>
+                <a href="#section-future">未来规划</a>
+                <a href="#section-contact">联系我</a>
+                <a href="#section-finale">结尾语</a>
+            </div>
+        </div>
+
+        <!-- ===== 侧边抽屉 ===== -->
+        <div class="drawer-overlay" id="drawerOverlay"></div>
+        <div class="drawer" id="drawer">
+            <div class="drawer-header">
+                <span>📋 目录</span>
+                <button class="close-drawer" id="drawerClose">✕</button>
+            </div>
+            <div class="drawer-list">
+                <a href="#section-profile">自我介绍</a>
+                <a href="#section-education">教育背景</a>
+                <a href="#section-skills">专业技能</a>
+                <a href="#section-practice">实践经历</a>
+                <a href="#section-projects">项目经历</a>
+                <a href="#section-works">项目作品</a>
+                <a href="#section-games">自制游戏</a>
+                <a href="#section-photo">摄影</a>
+                <a href="#section-cert">AI证书</a>
+                <a href="#section-future">未来规划</a>
+                <a href="#section-contact">联系我</a>
+                <a href="#section-finale">结尾语</a>
+            </div>
+        </div>
+
+        <!-- ===== 1. 自我介绍 ===== -->
+        <div class="section-block flow-item" id="section-profile" style="justify-content:center; min-height:100vh; padding-top:30px;">
+            <div class="profile-card-wrap">
+                <div class="profile-card">
+                    <img src="个人头像.jpg" alt="刘子铉" class="avatar" />
+                    <div class="pname">刘子铉</div>
+                    <div class="ptitle">软件工程 · AI 应用开发者</div>
+                    <div class="bio">
+                        2026级大一新生 · 河南牧业经济学院软件工程学士在读<br />
+                        达摩院、阿里等认证 AI 训练师 · 擅长 vibe coding<br />
+                        自媒体创作者 · 生活记录者 · INTJ
+                    </div>
+                    <img src="证件照.jpg" alt="证件照" class="id-photo" />
+                    <div class="bumper-wrapper" id="bumperWrapper"></div>
+                    <p style="font-size:0.7rem; color:var(--text-muted); text-align:center; margin-top:4px; letter-spacing:1px; opacity:0.6;">👆 标签自由碰撞</p>
                 </div>
             </div>
         </div>
 
-        <!-- ===== 2. 碰碰车技能 ===== -->
-        <div class="section-block flow-item" style="justify-content:center; min-height:100vh;">
-            <div class="title">🎯 技能标签</div>
-            <div class="bumper-wrapper" id="bumperWrapper">
-                <!-- JS 动态生成 -->
-            </div>
-            <p style="font-size:0.7rem; color:#7a6a55; text-align:center; margin-top:4px;">👆 标签自由碰撞 · 碰碰车效果</p>
-        </div>
-
-        <!-- ===== 3. 教育背景 ===== -->
-        <div class="section-block flow-item" style="justify-content:center; min-height:100vh;">
+        <!-- ===== 2. 教育背景 ===== -->
+        <div class="section-block flow-item" id="section-education" style="justify-content:center; min-height:100vh; padding-top:30px;">
             <div class="title">🎓 教育背景</div>
-            <div class="edu-item card">
-                <div class="edu-meta"><strong>河南牧业经济学院</strong> · 软件工程 · 本科（在读）</div>
-                <div class="edu-meta"><span>2024.09 – 2028.06（预期）</span> · 河南郑州</div>
+            <div class="edu-highlight">
+                <div class="edu-main">河南牧业经济学院 · 软件工程 · 本科（在读）</div>
+                <div class="edu-sub">2024.09 – 2028.06（预期） · 河南郑州<br />
+                    达摩院、阿里等认证 AI 训练师 · 擅长 vibe coding · 自媒体创作者 · 生活记录者 · INTJ
+                </div>
             </div>
-            <div class="edu-item card">
-                <div class="edu-meta"><strong>XX 高中</strong> · 理科 · 高中</div>
-                <div class="edu-meta"><span>2021.09 – 2024.06</span> · 河南郑州</div>
-            </div>
-            <div class="edu-item card">
-                <div class="edu-meta"><strong>XX 小学</strong> · 小学</div>
-                <div class="edu-meta"><span>2015.09 – 2021.06</span> · 河南郑州</div>
+            <div style="margin-top:4px;">
+                <div class="title" style="font-size:1.1rem; margin-bottom:8px;">💡 能为你做什么</div>
+                <div class="card" style="margin-bottom:0;">
+                    <div style="font-size:0.95rem; color:var(--text-secondary); line-height:1.9; padding:4px 0;">
+                        熟练运用多项 AI 工具，把想法迅速落地成网站、小游戏、海报、PPT、音乐等。<br />
+                        执行力极强，能迅速把想法落到实地。
+                    </div>
+                </div>
+                <!-- 自制海报图 + 说明文字 -->
+                <div style="margin-top:10px; border-radius:12px; overflow:hidden; border:1px solid var(--border-gold);">
+                    <img src="自制海报图.jpeg" alt="AI自制海报演示" style="width:100%; display:block;" loading="lazy" />
+                    <div style="padding:8px 14px; text-align:center; font-size:0.8rem; color:var(--text-secondary); background:rgba(255,252,248,0.6); border-top:1px solid var(--border-gold); letter-spacing:1px;">
+                        ✨ 用 AI 自制生成的海报
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- ===== 4. 经历 ===== -->
-        <div class="section-block flow-item" style="justify-content:center; min-height:100vh;">
-            <div class="title">📌 经历</div>
-            <div class="exp-item card">
-                <div class="exp-header">
-                    <span class="exp-title">学院AI技术分享社 · 发起人/主讲人</span>
-                    <span class="exp-period">2025.03 – 至今</span>
-                </div>
-                <ul>
-                    <li>发起并组建学院首个 AI 技术兴趣社团，成员从5人扩展至60+人。</li>
-                    <li>每周组织 AI 工具实操与案例分享会，累计主讲8场，参与超400人次。</li>
-                    <li>建立社团 AI 学习资源库，整理归档100+份资料，被成员作为核心学习参考。</li>
-                </ul>
+        <!-- ===== 3. 专业技能 ===== -->
+        <div class="section-block flow-item" id="section-skills" style="justify-content:center; min-height:100vh; padding-top:20px;">
+            <div class="title">⚡ 专业技能</div>
+            <!-- 火柴人拉框框 -->
+            <div id="stickmanCanvasWrap">
+                <canvas id="stickmanCanvas"></canvas>
             </div>
-            <div class="exp-item card">
-                <div class="exp-header">
-                    <span class="exp-title">暑期AI自学计划 · 独立完成</span>
-                    <span class="exp-period">2025.06 – 2025.08</span>
-                </div>
-                <ul>
-                    <li>10周高强度自学，系统完成机器学习、NLP、计算机视觉、AI产品设计等课程，学习超300小时。</li>
-                    <li>完成12个AI项目，涵盖文本生成、图像生成、音乐生成、智能对话、自动化办公等方向。</li>
-                    <li>通过在线考试与实战评测，累计获得近20项AI权威认证，成为学院公认的AI先行者。</li>
-                </ul>
+            <!-- 六边形能力图 -->
+            <div id="hexagonWrap">
+                <canvas id="hexagonCanvas"></canvas>
+                <div class="hex-hint">✦ 六维能力 · 滚动唤醒 ✦</div>
             </div>
-        </div>
-
-        <!-- ===== 5. 技能矩阵 ===== -->
-        <div class="section-block flow-item" style="justify-content:center; min-height:100vh;">
-            <div class="title">⚡ 技能矩阵</div>
+            <!-- 跳动字节 -->
+            <div class="typing-bg-wrap">
+                <div class="card" style="margin-top:0; text-align:center; overflow:hidden;">
+                    <div id="typingText" style="font-size:0.95rem; color:var(--text-secondary); line-height:1.9; min-height:60px; padding:4px 0; font-weight:500;">
+                        <span style="display:inline-block; opacity:0.6;">✦</span>
+                        <span style="display:inline-block;">具有学科融合发展能力，致力于发散思维、全面发展</span>
+                        <span style="display:inline-block; opacity:0.6;">✦</span>
+                    </div>
+                </div>
+            </div>
+            <!-- 进度条 -->
             <div class="skill-item card">
                 <div class="skill-name"><span>AI 与编程能力</span><span class="pct">88%</span></div>
                 <div class="skill-desc">Python · PyTorch · TensorFlow · 模型微调与部署</div>
@@ -1045,97 +1719,178 @@
             </div>
         </div>
 
+        <!-- ===== 4. 实践经历 ===== -->
+        <div class="section-block flow-item" id="section-practice" style="justify-content:center; min-height:100vh;">
+            <div class="title">📌 实践经历</div>
+            <div class="exp-item card">
+                <div class="exp-header">
+                    <span class="exp-title">暑假 AI 自学 · 大厂认证</span>
+                    <span class="exp-period">2026.06 – 2026.08</span>
+                </div>
+                <ul>
+                    <li>获得近 20 项大厂 AI 认证，包括达摩院、阿里云、科大讯飞、Datawhale 等官方 AI 训练师认证。</li>
+                    <li>熟练运用 AI 制作 PPT、飞机大战网页小游戏、精美海报。</li>
+                    <li>努力备考四级，完成雅思衔接课程学习。</li>
+                </ul>
+            </div>
+            <div class="exp-item card">
+                <div class="exp-header">
+                    <span class="exp-title">浪尖社区推荐官</span>
+                    <span class="exp-period">2026.03 – 至今</span>
+                </div>
+                <ul>
+                    <li>发掘并引荐优质创作者入驻社区，推动社区内容生态建设。</li>
+                </ul>
+                <!-- 浪尖儿知识库截图 -->
+                <div style="margin-top:10px; border-radius:10px; overflow:hidden; border:1px solid var(--border-gold);">
+                    <img src="浪尖儿知识库截图.jpg" alt="浪尖社区知识库截图" style="width:100%; display:block;" loading="lazy" />
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== 5. 项目经历 ===== -->
+        <div class="section-block flow-item" id="section-projects" style="justify-content:center; min-height:100vh;">
+            <div class="title">📁 项目经历</div>
+            <div class="card">
+                <div style="font-weight:600; color:var(--text-primary);">英语四级词汇背诵</div>
+                <div style="font-size:0.82rem; color:var(--text-secondary);">利用不背单词 APP，对单词进行规律性记忆与复习，提升记忆效率。</div>
+            </div>
+            <div class="card">
+                <div style="font-weight:600; color:var(--text-primary);">AI 训练认证</div>
+                <div style="font-size:0.82rem; color:var(--text-secondary);">通过课程学习与线上考试，获得 19 项大厂认证 AI 证书，认证成绩优异，名列前茅。</div>
+            </div>
+            <div class="card">
+                <div style="font-weight:600; color:var(--text-primary);">完成各种 AI 编程</div>
+                <div style="font-size:0.82rem; color:var(--text-secondary);">利用 AI 独立完成了网页小游戏、音乐、笔记总结、海报、个人简历网站等多个项目，获得了丰富的项目经验。</div>
+            </div>
+            <div class="card">
+                <div style="font-weight:600; color:var(--text-primary);">雅思衔接课程</div>
+                <div style="font-size:0.82rem; color:var(--text-secondary);">完成雅思衔接课程全部模块学习，涵盖听力、阅读、写作、口语四项技能，系统掌握学术英语表达规范。</div>
+            </div>
+        </div>
+
         <!-- ===== 6. 项目作品 ===== -->
-        <div class="section-block flow-item" style="justify-content:center; min-height:100vh;">
+        <div class="section-block flow-item" id="section-works" style="justify-content:center; min-height:100vh;">
             <div class="title">🚀 项目作品</div>
             <div class="project-item card">
                 <div class="proj-header">
-                    <span class="proj-name">🌐 AI智能简历网站</span>
+                    <span class="proj-name grad-blue-green">🌐 AI智能简历网站</span>
                     <span class="proj-tech">HTML/CSS/JS + AI API</span>
                 </div>
                 <div class="proj-desc">集成AI助手，优化加载，日均访问200+，首屏加载提升57%。</div>
             </div>
             <div class="project-item card">
                 <div class="proj-header">
-                    <span class="proj-name">📊 AI智能PPT生成工具</span>
+                    <span class="proj-name grad-blue-purple">📊 AI智能PPT生成工具</span>
                     <span class="proj-tech">Python + LLM</span>
                 </div>
-                <div class="proj-desc">一键生成完整PPT，效率提升95%，获校园AI大赛二等奖。</div>
-                <a href="第一份ppt.pdf" class="proj-attach" target="_blank">📎 第一份ppt.pdf</a>
+                <div class="proj-desc">一键生成完整PPT，效率提升95%，获个人作品集展示认可。</div>
             </div>
             <div class="project-item card">
                 <div class="proj-header">
-                    <span class="proj-name">💻 AI辅助编程助手</span>
+                    <span class="proj-name grad-pink-blue">💻 AI辅助编程助手</span>
                     <span class="proj-tech">Python + OpenAI</span>
                 </div>
-                <div class="proj-desc">代码补全与错误诊断，准确率提升至85%，获学院创新基金支持。</div>
+                <div class="proj-desc">代码补全与错误诊断，准确率提升至85%，作为个人学习成果展示。</div>
             </div>
             <div class="project-item card">
                 <div class="proj-header">
-                    <span class="proj-name">🎵 AI音乐生成与交互游戏</span>
+                    <span class="proj-name grad-red-purple">🎵 AI音乐生成与交互游戏</span>
                     <span class="proj-tech">Suno + Pygame</span>
                 </div>
-                <div class="proj-desc">节奏游戏+AI配乐，用户500+，次日留存35%，获院级立项资助。</div>
-                <a href="第二份ppt.pdf" class="proj-attach" target="_blank">📎 第二份ppt.pdf</a>
+                <div class="proj-desc">节奏游戏+AI配乐，用户500+，次日留存35%，获社区开发者好评。</div>
+            </div>
+            <!-- 手势粒子交互 -->
+            <div class="project-item card">
+                <div class="proj-header">
+                    <span class="proj-name" style="font-weight:700; color:var(--text-primary);">✋ 手势粒子交互</span>
+                    <span class="proj-tech">HTML/CSS/JS + Three.js</span>
+                </div>
+                <div class="proj-desc">基于手部追踪的粒子交互艺术，手势控制粒子流动与变形。</div>
+                <a href="手势粒子交互.html" class="proj-attach" target="_blank">🎯 查看演示</a>
+                <div class="proj-demo-img">
+                    <img src="粒子交互演示图.jpg" alt="手势粒子交互演示" loading="lazy" />
+                </div>
+            </div>
+
+            <div class="ppt-section">
+                <div class="ppt-label">📑 PPT 作品</div>
+                <div class="ppt-link-list">
+                    <a href="第一份ppt.pptx" class="ppt-link-item" download>
+                        <span class="ppt-icon">📄</span>
+                        <span class="ppt-info">
+                            <span class="ppt-name">第一份ppt.pptx</span>
+                            <span class="ppt-desc">点击下载 · AI 生成 PPT 作品</span>
+                        </span>
+                    </a>
+                    <a href="第二份ppt.pptx" class="ppt-link-item" download>
+                        <span class="ppt-icon">📄</span>
+                        <span class="ppt-info">
+                            <span class="ppt-name">第二份ppt.pptx</span>
+                            <span class="ppt-desc">点击下载 · AI 生成 PPT 作品</span>
+                        </span>
+                    </a>
+                </div>
+                <div class="ppt-screenshot">
+                    <img src="PPT截图.png" alt="PPT 作品预览截图" loading="lazy" />
+                    <div class="caption">📸 PPT 作品预览截图</div>
+                </div>
             </div>
         </div>
 
-        <!-- ===== 7. 摄影与记录生活 (3D球体) ===== -->
-        <div class="section-block flow-item" style="justify-content:center; min-height:100vh;">
+        <!-- ===== 7. 自制游戏 ===== -->
+        <div class="section-block flow-item" id="section-games" style="justify-content:center; min-height:100vh;">
+            <div class="title">🛩️ 飞机大战 · 自制游戏</div>
+            <div class="game-iframe-container">
+                <iframe src="飞机大战index.html" title="飞机大战游戏" loading="lazy"></iframe>
+            </div>
+        </div>
+        <div class="section-block flow-item" style="justify-content:center; min-height:100vh; padding-top:10px;">
+            <div class="title">💥 坦克大战 · 自制游戏</div>
+            <div class="game-iframe-container">
+                <iframe src="坦克大战index.html" title="坦克大战游戏" loading="lazy"></iframe>
+            </div>
+        </div>
+
+        <!-- ===== 8. 摄影 ===== -->
+        <div class="section-block flow-item" id="section-photo" style="justify-content:center; min-height:100vh;">
             <div class="title">📷 摄影 · 记录生活</div>
-            <div class="card" style="padding:10px;">
-                <div id="photoSphereContainer">
-                    <div class="photo-sphere-hint">👆 拖拽旋转 · 自动播放</div>
-                </div>
+            <div class="three-container" id="photoSphereContainer">
+                <div class="three-hint">👆 拖拽旋转 · 自动播放</div>
             </div>
         </div>
 
-        <!-- ===== 8. AI证书墙 ===== -->
-        <div class="section-block flow-item" style="justify-content:center; min-height:100vh;">
+        <!-- ===== 9. AI证书 ===== -->
+        <div class="section-block flow-item" id="section-cert" style="justify-content:center; min-height:100vh;">
             <div class="title">🏅 近20项大厂认证 AI 证书</div>
-            <div class="cert-wall">
-                <div class="cert-grid" id="certGrid">
-                    <!-- JS 生成 1.jpg ~ 19.jpg -->
-                </div>
-                <a href="AI.zip" download="AI证书.zip" class="download-zip">📦 下载 AI 证书压缩包 (19张)</a>
-                <ul class="cert-list">
-                    <li>Datawhale × 趋动云 · LLM Engineer</li>
-                    <li>Datawhale × 科大讯飞 · Fine-tuning Engineer</li>
-                    <li>Datawhale × 蚂蚁集团 · Agent Engineer</li>
-                    <li>Datawhale × 商汤 · AI+数据分析</li>
-                    <li>Datawhale × 魔搭社区 · Agent Engineer</li>
-                    <li>浪潮信息 × Datawhale · 大模型开发工程师</li>
-                    <li>讯飞星火 × Datawhale · Prompt Engineer</li>
-                    <li>豆包MarsCode · AI+编程能力认证</li>
-                    <li>ITC · 人工智能大师课参与证书</li>
-                    <li>AI4S Cup · Python 基础能力认证</li>
-                    <li>科大讯飞 AI 大学堂 · 微调工程师</li>
-                    <li>科大讯飞 AI 大学堂 · 智能体工程师</li>
-                    <li>科大讯飞 AI 大学堂 · Prompt工程师</li>
-                    <li>阿里云 · AIGC 设计基础 (PAI ArtLab)</li>
-                    <li>阿里云 · RAG 应用构建及优化</li>
-                    <li>阿里云 · 大模型提升内容生产能力</li>
-                    <li>阿里云 · 基于百炼构建智能体</li>
-                    <li>达摩院 · 人工智能训练师（初级）</li>
-                    <li>达摩院 · 人工智能训练师（高级）</li>
-                </ul>
+            <div class="three-container" id="certWallContainer">
+                <div class="three-hint">👆 拖拽旋转 · 自动播放</div>
             </div>
         </div>
 
-        <!-- ===== 9. 联系我 (背景3.jpg) ===== -->
-        <div class="section-block flow-item contact-section" style="justify-content:center; min-height:100vh;">
+        <!-- ===== 10. 未来规划 ===== -->
+        <div class="section-block flow-item" id="section-future" style="justify-content:center; min-height:100vh; padding-bottom:20px;">
+            <div class="title">🌐 未来规划 · 四年征程</div>
+            <div id="globeContainer">
+                <div class="globe-hint">👆 拖拽旋转 · 点击标记点</div>
+            </div>
+            <button class="globe-summary-btn" id="globeSummaryBtn">✦ 查看完整时间线 ✦</button>
+        </div>
+
+        <!-- ===== 11. 联系我 ===== -->
+        <div class="section-block flow-item contact-section" id="section-contact" style="justify-content:center; min-height:100vh;">
             <div class="title">📞 联系我</div>
             <div class="contact-me-grid">
-                <div class="contact-me-card" data-type="phone">
+                <div class="contact-me-card phone-card" data-type="phone">
                     <div class="left">
-                        <span class="icon">📱</span>
+                        <img src="手机号.jpg" alt="手机号图标" class="icon" />
                         <span class="label">手机号</span>
                     </div>
                     <span class="right-arrow">›</span>
                 </div>
-                <div class="contact-me-card" data-type="email">
+                <div class="contact-me-card email-card" data-type="email">
                     <div class="left">
-                        <span class="icon">✉️</span>
+                        <img src="电子邮件.jpg" alt="电子邮件图标" class="icon" />
                         <span class="label">电子邮件</span>
                     </div>
                     <span class="right-arrow">›</span>
@@ -1153,33 +1908,40 @@
             </div>
         </div>
 
-        <!-- ===== 10. 结尾语 ===== -->
-        <div class="finale-section flow-item" style="min-height:100vh; display:flex; align-items:center; justify-content:center;">
+        <!-- ===== 12. 结尾语 ===== -->
+        <div class="finale-section flow-item" id="section-finale" style="min-height:100vh; display:flex; align-items:center; justify-content:center;">
             <div class="finale-text">
-                <div class="line1">"一个人走得快"</div>
-                <div class="line2">"一群人走得远"</div>
+                <div class="line1">“一个人走得快，</div>
+                <div class="line2">一群人走得远”</div>
             </div>
         </div>
 
     </div>
 
-    <!-- ===== Three.js ===== -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js">
-    </script>
-
     <script>
         // ============================================================
-        //  数据
+        //  配置
         // ============================================================
+        const PHOTO_COUNT = 14;
+        const CERT_COUNT = 19;
+        const PHONE = '13673789198';
+        const EMAIL = '3913112471@qq.com';
+
         const skillList = [
             'AI编程', 'PPT', '备考英语四级', '制作知识库',
             '用AI制作游戏', '用AI制作音乐', 'vibe coding',
             '视频剪辑', '摄影与记录生活', '19项AI技能认证大厂证书'
         ];
-        const PHOTO_COUNT = 14;
-        const CERT_COUNT = 19;
-        const PHONE = '13673789198';
-        const EMAIL = '3913112471@qq.com';
+
+        // 六边形数据 (六维能力图)
+        const hexData = [
+            { label: 'AI编程', value: 88 },
+            { label: '执行力', value: 95 },
+            { label: 'AI工具生态', value: 90 },
+            { label: '学科融合', value: 75 },
+            { label: '创意工具', value: 70 },
+            { label: '全栈开发', value: 70 }
+        ];
 
         // ============================================================
         //  启动页
@@ -1187,6 +1949,8 @@
         const splash = document.getElementById('splash');
         const main = document.getElementById('main');
         const flowItems = document.querySelectorAll('.flow-item');
+        const bgMusic = document.getElementById('bgMusic');
+        const musicToggle = document.getElementById('musicToggle');
 
         function enterMain() {
             splash.classList.add('hide');
@@ -1195,12 +1959,64 @@
             flowItems.forEach((el, i) => {
                 setTimeout(() => el.classList.add('visible'), 80 + i * 50);
             });
-            setTimeout(initPhotoSphere, 600);
+            setTimeout(initAllThree, 800);
+            setTimeout(initGlobe, 900);
+            setTimeout(initStickmanAnimation, 600);
+            setTimeout(initHexagon, 700);
+            musicToggle.textContent = '🔇';
         }
 
         splash.addEventListener('click', enterMain);
         splash.addEventListener('touchstart', (e) => {
             if (e.changedTouches.length === 1) enterMain();
+        });
+
+        // ============================================================
+        //  音乐控制
+        // ============================================================
+        let musicPlaying = false;
+        musicToggle.addEventListener('click', () => {
+            if (musicPlaying) {
+                bgMusic.pause();
+                musicPlaying = false;
+                musicToggle.textContent = '🔇';
+            } else {
+                bgMusic.play().then(() => {
+                    musicPlaying = true;
+                    musicToggle.textContent = '🔊';
+                }).catch(() => {});
+            }
+        });
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && musicPlaying) bgMusic.pause();
+            else if (!document.hidden && musicPlaying) bgMusic.play().catch(() => {});
+        });
+
+        // ============================================================
+        //  导航菜单
+        // ============================================================
+        const menuToggle = document.getElementById('menuToggle');
+        const drawer = document.getElementById('drawer');
+        const drawerOverlay = document.getElementById('drawerOverlay');
+        const drawerClose = document.getElementById('drawerClose');
+
+        function openDrawer() {
+            drawer.classList.add('open');
+            drawerOverlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeDrawer() {
+            drawer.classList.remove('open');
+            drawerOverlay.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        menuToggle.addEventListener('click', openDrawer);
+        drawerClose.addEventListener('click', closeDrawer);
+        drawerOverlay.addEventListener('click', closeDrawer);
+        document.querySelectorAll('.drawer-list a').forEach(a => {
+            a.addEventListener('click', closeDrawer);
         });
 
         // ============================================================
@@ -1212,75 +2028,220 @@
         document.querySelectorAll('.flow-item:not(.visible)').forEach(el => observer.observe(el));
 
         // ============================================================
-        //  碰碰车技能标签
+        //  交互 Canvas（涟漪 + 流星 黄渐变红）
+        // ============================================================
+        (function initInteraction() {
+            const canvas = document.getElementById('interactionCanvas');
+            const ctx = canvas.getContext('2d');
+            let W, H;
+            let ripples = [],
+                meteors = [];
+            let glow = { x: 0, y: 0, radius: 0, alpha: 0 };
+            let targetGlow = { x: 0, y: 0, radius: 0, alpha: 0 };
+            const MAX_RIPPLES = 35,
+                MAX_METEORS = 20;
+
+            function resize() {
+                W = canvas.width = window.innerWidth;
+                H = canvas.height = window.innerHeight;
+            }
+            window.addEventListener('resize', resize);
+            resize();
+
+            function addRipple(x, y) {
+                if (ripples.length >= MAX_RIPPLES) ripples.shift();
+                ripples.push({
+                    x,
+                    y,
+                    radius: 6,
+                    maxRadius: Math.min(W, H) * 0.45,
+                    speed: 2.8 + Math.random() * 1.4,
+                    alpha: 0.8 + Math.random() * 0.15,
+                    life: 1.0,
+                    decay: 0.005 + Math.random() * 0.005,
+                    width: 2.0 + Math.random() * 1.2,
+                    hue: 35 + Math.random() * 30
+                });
+            }
+
+            function addMeteor(x, y) {
+                if (meteors.length >= MAX_METEORS) meteors.shift();
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 5 + Math.random() * 9;
+                const len = 45 + Math.random() * 60;
+                meteors.push({
+                    x,
+                    y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    length: len,
+                    life: 1.0,
+                    decay: 0.006 + Math.random() * 0.008,
+                    hue1: 30 + Math.random() * 20,
+                    hue2: 350 + Math.random() * 30
+                });
+            }
+
+            function updateGlow(x, y) {
+                targetGlow.x = x;
+                targetGlow.y = y;
+                targetGlow.radius = Math.min(W, H) * 0.3;
+                targetGlow.alpha = 0.12 + Math.random() * 0.04;
+            }
+
+            const onMove = (x, y) => {
+                if (Math.random() < 0.5) addRipple(x, y);
+                if (Math.random() < 0.10) addMeteor(x, y);
+                updateGlow(x, y);
+                if (Math.random() < 0.06) {
+                    setTimeout(() => addMeteor(x + (Math.random() - 0.5) * 70, y + (Math.random() - 0.5) * 70), 40);
+                }
+            };
+
+            document.addEventListener('mousemove', (e) => { onMove(e.clientX, e.clientY); });
+            document.addEventListener('touchmove', (e) => {
+                const touch = e.touches[0];
+                if (touch) onMove(touch.clientX, touch.clientY);
+            }, { passive: true });
+            document.addEventListener('touchstart', (e) => {
+                const touch = e.touches[0];
+                if (touch) {
+                    for (let i = 0; i < 4; i++) {
+                        setTimeout(() => {
+                            const x = touch.clientX + (Math.random() - 0.5) * 90;
+                            const y = touch.clientY + (Math.random() - 0.5) * 90;
+                            addRipple(x, y);
+                            if (Math.random() < 0.4) addMeteor(x, y);
+                            updateGlow(x, y);
+                        }, i * 70);
+                    }
+                }
+            }, { passive: true });
+            setInterval(() => {
+                if (Math.random() < 0.12) {
+                    const x = Math.random() * W,
+                        y = Math.random() * H;
+                    addMeteor(x, y);
+                }
+            }, 1800);
+
+            function animate() {
+                ctx.clearRect(0, 0, W, H);
+                glow.x += (targetGlow.x - glow.x) * 0.05;
+                glow.y += (targetGlow.y - glow.y) * 0.05;
+                glow.radius += (targetGlow.radius - glow.radius) * 0.04;
+                glow.alpha += (targetGlow.alpha - glow.alpha) * 0.04;
+                if (glow.radius > 10 && glow.alpha > 0.003) {
+                    const grad = ctx.createRadialGradient(glow.x, glow.y, 0, glow.x, glow.y, glow.radius);
+                    grad.addColorStop(0, `rgba(255,200,150,${glow.alpha*0.4})`);
+                    grad.addColorStop(0.3, `rgba(255,180,120,${glow.alpha*0.2})`);
+                    grad.addColorStop(0.7, `rgba(255,160,100,${glow.alpha*0.08})`);
+                    grad.addColorStop(1, 'rgba(0,0,0,0)');
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(0, 0, W, H);
+                }
+                for (let i = ripples.length - 1; i >= 0; i--) {
+                    const r = ripples[i];
+                    r.radius += r.speed;
+                    r.life -= r.decay;
+                    if (r.life <= 0 || r.radius > r.maxRadius) { ripples.splice(i, 1); continue; }
+                    const alpha = r.alpha * r.life * 0.45;
+                    ctx.beginPath();
+                    ctx.arc(r.x, r.y, r.radius, 0, Math.PI * 2);
+                    ctx.strokeStyle = `hsla(${r.hue},90%,70%,${alpha})`;
+                    ctx.lineWidth = r.width * r.life;
+                    ctx.stroke();
+                    if (r.radius > 18) {
+                        ctx.beginPath();
+                        ctx.arc(r.x, r.y, r.radius * 0.55, 0, Math.PI * 2);
+                        ctx.strokeStyle = `hsla(${r.hue+20},90%,75%,${alpha*0.25})`;
+                        ctx.lineWidth = r.width * 0.4 * r.life;
+                        ctx.stroke();
+                    }
+                }
+                for (let i = meteors.length - 1; i >= 0; i--) {
+                    const m = meteors[i];
+                    m.x += m.vx;
+                    m.y += m.vy;
+                    m.life -= m.decay;
+                    if (m.life <= 0) { meteors.splice(i, 1); continue; }
+                    const alpha = m.life * 0.7;
+                    const grad = ctx.createLinearGradient(m.x, m.y, m.x - m.vx * m.length / 5, m.y - m.vy * m.length / 5);
+                    grad.addColorStop(0, `hsla(${m.hue1},100%,75%,${alpha})`);
+                    grad.addColorStop(1, `hsla(${m.hue2},100%,60%,${alpha*0.2})`);
+                    ctx.beginPath();
+                    ctx.moveTo(m.x, m.y);
+                    ctx.lineTo(m.x - m.vx * m.length / 4, m.y - m.vy * m.length / 4);
+                    ctx.strokeStyle = grad;
+                    ctx.lineWidth = 2.5 * m.life;
+                    ctx.lineCap = 'round';
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.arc(m.x, m.y, 3.5 * m.life, 0, Math.PI * 2);
+                    ctx.fillStyle = `hsla(${m.hue1+10},100%,90%,${alpha*0.6})`;
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(m.x, m.y, 10 * m.life, 0, Math.PI * 2);
+                    const g2 = ctx.createRadialGradient(m.x, m.y, 0, m.x, m.y, 10 * m.life);
+                    g2.addColorStop(0, `hsla(${m.hue1},80%,80%,${alpha*0.15})`);
+                    g2.addColorStop(1, 'rgba(0,0,0,0)');
+                    ctx.fillStyle = g2;
+                    ctx.fill();
+                }
+                requestAnimationFrame(animate);
+            }
+            animate();
+            window._addMeteor = addMeteor;
+        })();
+
+        // ============================================================
+        //  碰碰车（速度加快）
         // ============================================================
         const wrapper = document.getElementById('bumperWrapper');
-        let bumperTags = [];
-        let bumperAnimId = null;
+        let bumperTags = [],
+            bumperAnimId = null;
 
         function initBumperTags() {
-            const containerWidth = wrapper.clientWidth;
-            const containerHeight = wrapper.clientHeight;
-            if (containerWidth < 10 || containerHeight < 10) {
-                setTimeout(initBumperTags, 200);
-                return;
-            }
+            const cw = wrapper.clientWidth,
+                ch = wrapper.clientHeight;
+            if (cw < 10 || ch < 10) { setTimeout(initBumperTags, 200); return; }
             wrapper.innerHTML = '';
             bumperTags = [];
-            const usedPositions = [];
-
+            const used = [];
             skillList.forEach((text) => {
                 const el = document.createElement('span');
                 el.className = 'bumper-tag';
                 el.textContent = '#' + text;
-
-                let x, y, attempts = 0;
-                let overlap = true;
-                const tagW = text.length * 6 + 32;
-                const tagH = 30;
+                let x, y, attempts = 0,
+                    overlap = true;
+                const tw = text.length * 6 + 32,
+                    th = 30;
                 while (overlap && attempts < 80) {
-                    x = 6 + Math.random() * (containerWidth - tagW - 12);
-                    y = 6 + Math.random() * (containerHeight - tagH - 12);
-                    overlap = usedPositions.some(p =>
-                        Math.abs(p.x - x) < tagW + 6 && Math.abs(p.y - y) < tagH + 6
-                    );
+                    x = 6 + Math.random() * (cw - tw - 12);
+                    y = 6 + Math.random() * (ch - th - 12);
+                    overlap = used.some(p => Math.abs(p.x - x) < tw + 6 && Math.abs(p.y - y) < th + 6);
                     attempts++;
                 }
-                usedPositions.push({ x, y });
+                used.push({ x, y });
                 el.style.left = x + 'px';
                 el.style.top = y + 'px';
-
-                const vx = (Math.random() - 0.5) * 1.4;
-                const vy = (Math.random() - 0.5) * 1.4;
-                const data = {
-                    el,
-                    x,
-                    y,
-                    vx,
-                    vy,
-                    w: tagW,
-                    h: tagH,
-                    containerW: containerWidth,
-                    containerH: containerHeight
-                };
-                bumperTags.push(data);
+                const vx = (Math.random() - 0.5) * 5.0;
+                const vy = (Math.random() - 0.5) * 5.0;
+                bumperTags.push({ el, x, y, vx, vy, w: tw, h: th, cw, ch });
                 wrapper.appendChild(el);
             });
-
             if (bumperAnimId) cancelAnimationFrame(bumperAnimId);
             animateBumpers();
         }
 
         function animateBumpers() {
-            const cw = wrapper.clientWidth;
-            const ch = wrapper.clientHeight;
-            const pad = 4;
-
+            const cw = wrapper.clientWidth,
+                ch = wrapper.clientHeight,
+                pad = 4;
             for (let i = 0; i < bumperTags.length; i++) {
                 const t = bumperTags[i];
                 t.x += t.vx;
                 t.y += t.vy;
-
                 if (t.x < pad) { t.x = pad;
                     t.vx = Math.abs(t.vx) * 0.98; }
                 if (t.x + t.w > cw - pad) { t.x = cw - t.w - pad;
@@ -1289,12 +2250,9 @@
                     t.vy = Math.abs(t.vy) * 0.98; }
                 if (t.y + t.h > ch - pad) { t.y = ch - t.h - pad;
                     t.vy = -Math.abs(t.vy) * 0.98; }
-
                 t.el.style.left = t.x + 'px';
                 t.el.style.top = t.y + 'px';
             }
-
-            // 标签碰撞
             for (let i = 0; i < bumperTags.length; i++) {
                 for (let j = i + 1; j < bumperTags.length; j++) {
                     const a = bumperTags[i],
@@ -1302,27 +2260,27 @@
                     const dx = (a.x + a.w / 2) - (b.x + b.w / 2);
                     const dy = (a.y + a.h / 2) - (b.y + b.h / 2);
                     const dist = Math.sqrt(dx * dx + dy * dy);
-                    const minDist = (a.w + b.w) / 2 + 2;
-                    if (dist < minDist && dist > 0.01) {
-                        const overlapX = (minDist - dist) * (dx / dist) * 0.25;
-                        const overlapY = (minDist - dist) * (dy / dist) * 0.25;
-                        a.x += overlapX;
-                        a.y += overlapY;
-                        b.x -= overlapX;
-                        b.y -= overlapY;
-                        const tempVx = a.vx,
-                            tempVy = a.vy;
+                    const minD = (a.w + b.w) / 2 + 2;
+                    if (dist < minD && dist > 0.01) {
+                        const ox = (minD - dist) * (dx / dist) * 0.25;
+                        const oy = (minD - dist) * (dy / dist) * 0.25;
+                        a.x += ox;
+                        a.y += oy;
+                        b.x -= ox;
+                        b.y -= oy;
+                        const tvx = a.vx,
+                            tvy = a.vy;
                         a.vx = b.vx * 0.88 + (Math.random() - 0.5) * 0.08;
                         a.vy = b.vy * 0.88 + (Math.random() - 0.5) * 0.08;
-                        b.vx = tempVx * 0.88 + (Math.random() - 0.5) * 0.08;
-                        b.vy = tempVy * 0.88 + (Math.random() - 0.5) * 0.08;
-                        const maxSpeed = 1.8;
+                        b.vx = tvx * 0.88 + (Math.random() - 0.5) * 0.08;
+                        b.vy = tvy * 0.88 + (Math.random() - 0.5) * 0.08;
+                        const maxS = 5.0;
                         [a, b].forEach(t => {
                             const sp = Math.sqrt(t.vx * t.vx + t.vy * t.vy);
-                            if (sp > maxSpeed) { t.vx = (t.vx / sp) * maxSpeed;
-                                t.vy = (t.vy / sp) * maxSpeed; }
-                            if (sp < 0.15 && Math.random() < 0.008) { t.vx += (Math.random() - 0.5) * 0.3;
-                                t.vy += (Math.random() - 0.5) * 0.3; }
+                            if (sp > maxS) { t.vx = (t.vx / sp) * maxS;
+                                t.vy = (t.vy / sp) * maxS; }
+                            if (sp < 0.3 && Math.random() < 0.01) { t.vx += (Math.random() - 0.5) * 0.4;
+                                t.vy += (Math.random() - 0.5) * 0.4; }
                         });
                         [a, b].forEach(t => {
                             if (t.x < pad) t.x = pad;
@@ -1333,7 +2291,6 @@
                     }
                 }
             }
-
             bumperAnimId = requestAnimationFrame(animateBumpers);
         }
 
@@ -1342,14 +2299,10 @@
         function safeInitBumper() {
             clearTimeout(bumperInitTimer);
             bumperInitTimer = setTimeout(() => {
-                if (wrapper.clientWidth > 10 && wrapper.clientHeight > 10) {
-                    initBumperTags();
-                } else {
-                    safeInitBumper();
-                }
+                if (wrapper.clientWidth > 10 && wrapper.clientHeight > 10) initBumperTags();
+                else safeInitBumper();
             }, 300);
         }
-
         let resizeBumperTimer = null;
         window.addEventListener('resize', () => {
             clearTimeout(resizeBumperTimer);
@@ -1362,63 +2315,459 @@
         });
 
         // ============================================================
-        //  证书墙
+        //  火柴人拉框框（两个火柴人在框两侧推拉）
         // ============================================================
-        const certGrid = document.getElementById('certGrid');
-        for (let i = 1; i <= CERT_COUNT; i++) {
-            const item = document.createElement('div');
-            item.className = 'cert-item';
-            const img = document.createElement('img');
-            img.src = i + '.jpg';
-            img.alt = 'AI证书 ' + i;
-            img.loading = 'lazy';
-            img.onerror = function() {
-                this.style.display = 'none';
-                const p = document.createElement('span');
-                p.textContent = '📄 ' + i;
-                p.style.cssText =
-                    'display:flex;align-items:center;justify-content:center;width:100%;height:100%;color:#999;font-size:0.6rem;background:rgba(0,0,0,0.04);';
-                this.parentNode.appendChild(p);
-            };
-            item.appendChild(img);
-            const label = document.createElement('span');
-            label.className = 'cert-label';
-            label.textContent = '#' + i;
-            item.appendChild(label);
-            item.addEventListener('click', () => openImgModal(i + '.jpg'));
-            certGrid.appendChild(item);
+        function initStickmanAnimation() {
+            const canvas = document.getElementById('stickmanCanvas');
+            const container = document.getElementById('stickmanCanvasWrap');
+            if (!canvas || !container) return;
+
+            const rect = container.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            let W = rect.width || 400,
+                H = rect.height || 300;
+
+            canvas.width = W * dpr;
+            canvas.height = H * dpr;
+            canvas.style.width = W + 'px';
+            canvas.style.height = H + 'px';
+            const ctx = canvas.getContext('2d');
+            ctx.scale(dpr, dpr);
+
+            const rows = [{
+                y: H * 0.22,
+                speed: 0.7,
+                tags: ['笔记总结', '生成音乐'],
+                color: '#4dabf7'
+            }, {
+                y: H * 0.50,
+                speed: 1.0,
+                tags: ['制作小游戏', '个人简历网站'],
+                color: '#cc99ff'
+            }, {
+                y: H * 0.78,
+                speed: 1.3,
+                tags: ['PPT制作', 'AI编程', '海报设计'],
+                color: '#ff6b6b'
+            }];
+
+            let offsetX = 0;
+            const boxW = 140,
+                boxH = 48;
+            const stickmanSpacing = 40;
+            let walkTime = 0;
+
+            function drawStickman(ctx, x, y, legPhase, armPhase, color, armDir) {
+                const headR = 9;
+                const bodyLen = 22;
+                const limbLen = 15;
+                ctx.save();
+                ctx.translate(x, y);
+                // 头
+                ctx.beginPath();
+                ctx.arc(0, -bodyLen / 2 - headR, headR, 0, Math.PI * 2);
+                ctx.fillStyle = color || '#8fb386';
+                ctx.fill();
+                ctx.strokeStyle = '#3d3228';
+                ctx.lineWidth = 1.8;
+                ctx.stroke();
+                // 身体
+                ctx.beginPath();
+                ctx.moveTo(0, -bodyLen / 2);
+                ctx.lineTo(0, bodyLen / 2);
+                ctx.strokeStyle = '#3d3228';
+                ctx.lineWidth = 2.2;
+                ctx.stroke();
+                // 左腿
+                const lLeg = Math.sin(legPhase) * 7;
+                ctx.beginPath();
+                ctx.moveTo(0, bodyLen / 2);
+                ctx.lineTo(-9 + lLeg, bodyLen / 2 + limbLen);
+                ctx.stroke();
+                // 右腿
+                const rLeg = Math.sin(legPhase + Math.PI) * 7;
+                ctx.beginPath();
+                ctx.moveTo(0, bodyLen / 2);
+                ctx.lineTo(9 + rLeg, bodyLen / 2 + limbLen);
+                ctx.stroke();
+                // 左臂 - 推拉方向
+                const armSwing = Math.sin(armPhase) * 10;
+                const armBase = armDir === 'left' ? -6 : 6;
+                const armEndX = armBase + (armDir === 'left' ? -armSwing : armSwing);
+                ctx.beginPath();
+                ctx.moveTo(0, -bodyLen / 2 + 4);
+                ctx.lineTo(armEndX, -bodyLen / 2 + limbLen + 2);
+                ctx.stroke();
+                // 右臂 - 反向
+                const armSwing2 = Math.sin(armPhase + Math.PI) * 10;
+                const armBase2 = armDir === 'left' ? 6 : -6;
+                const armEndX2 = armBase2 + (armDir === 'left' ? armSwing2 : -armSwing2);
+                ctx.beginPath();
+                ctx.moveTo(0, -bodyLen / 2 + 4);
+                ctx.lineTo(armEndX2, -bodyLen / 2 + limbLen + 2);
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            function drawBox(ctx, x, y, tags, color) {
+                const bw = boxW,
+                    bh = boxH;
+                ctx.save();
+                ctx.shadowColor = 'rgba(30,60,150,0.15)';
+                ctx.shadowBlur = 12;
+                ctx.strokeStyle = color || '#667eea';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([4, 4]);
+                ctx.strokeRect(x, y, bw, bh);
+                ctx.setLineDash([]);
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = '#2d241c';
+                ctx.font = '11px "PingFang SC", "Microsoft YaHei", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                const midX = x + bw / 2,
+                    midY = y + bh / 2;
+                if (tags.length === 1) {
+                    ctx.fillText(tags[0], midX, midY);
+                } else if (tags.length === 2) {
+                    ctx.fillText(tags[0], midX, midY - 8);
+                    ctx.fillText(tags[1], midX, midY + 10);
+                } else {
+                    ctx.fillText(tags[0], midX, midY - 10);
+                    ctx.fillText(tags[1], midX, midY + 2);
+                    ctx.fillText(tags[2], midX, midY + 14);
+                }
+                ctx.restore();
+            }
+
+            function draw() {
+                ctx.clearRect(0, 0, W, H);
+                walkTime += 0.12;
+                rows.forEach((row, idx) => {
+                    const baseX = (offsetX * row.speed) % (W + boxW + stickmanSpacing * 2 + 40) - boxW - stickmanSpacing *
+                        2 - 20;
+                    const boxX = baseX + stickmanSpacing / 2 + 4;
+                    const boxY = row.y - boxH / 2;
+                    const s1x = baseX + 6;
+                    const s2x = baseX + stickmanSpacing + boxW + 10;
+                    const color = row.color;
+                    const phase1 = walkTime + idx * 0.4;
+                    const phase2 = walkTime + idx * 0.4 + 0.6;
+                    drawStickman(ctx, s1x, row.y, phase1, phase1 + 0.2, color, 'right');
+                    drawStickman(ctx, s2x, row.y, phase2, phase2 + 0.2, color, 'left');
+                    drawBox(ctx, boxX, row.y - boxH / 2, row.tags, color);
+                    ctx.beginPath();
+                    ctx.moveTo(s1x + 6, row.y - 4);
+                    ctx.lineTo(boxX - 2, row.y - 2);
+                    ctx.strokeStyle = 'rgba(60,50,40,0.10)';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(s2x - 6, row.y - 4);
+                    ctx.lineTo(boxX + boxW + 2, row.y - 2);
+                    ctx.stroke();
+                });
+                offsetX += 0.5;
+                requestAnimationFrame(draw);
+            }
+            draw();
+
+            let resizeTimer;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(() => {
+                    const r2 = container.getBoundingClientRect();
+                    if (r2.width > 10 && r2.height > 10) {
+                        W = r2.width;
+                        H = r2.height;
+                        canvas.width = W * dpr;
+                        canvas.height = H * dpr;
+                        canvas.style.width = W + 'px';
+                        canvas.style.height = H + 'px';
+                        ctx.scale(dpr, dpr);
+                    }
+                }, 300);
+            });
         }
 
         // ============================================================
-        //  模态框（联系我-手机号/邮件）
+        //  六边形能力图（六维能力图，非标准六边形）
+        // ============================================================
+        function initHexagon() {
+            const canvas = document.getElementById('hexagonCanvas');
+            const container = document.getElementById('hexagonWrap');
+            if (!canvas || !container) return;
+
+            const rect = container.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            let W = rect.width || 400,
+                H = rect.height || 400;
+
+            canvas.width = W * dpr;
+            canvas.height = H * dpr;
+            canvas.style.width = W + 'px';
+            canvas.style.height = H + 'px';
+            const ctx = canvas.getContext('2d');
+            ctx.scale(dpr, dpr);
+
+            const centerX = W / 2,
+                centerY = H / 2;
+            const maxRadius = Math.min(W, H) * 0.38;
+            const labels = hexData.map(d => d.label);
+            const values = hexData.map(d => d.value);
+
+            let progress = 0;
+            let isExpanded = false;
+            let animId = null;
+
+            const hexObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting && !isExpanded) {
+                        isExpanded = true;
+                        expandHexagon();
+                    }
+                });
+            }, { threshold: 0.2 });
+
+            hexObserver.observe(container);
+
+            function drawHexagon(p) {
+                ctx.clearRect(0, 0, W, H);
+                const starCount = 45;
+                for (let i = 0; i < starCount; i++) {
+                    const sx = (Math.random() * W * 0.85 + W * 0.075);
+                    const sy = (Math.random() * H * 0.85 + H * 0.075);
+                    const sr = 1 + Math.random() * 2;
+                    const brightness = 0.15 + Math.random() * 0.25;
+                    ctx.beginPath();
+                    ctx.arc(sx, sy, sr, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(255,255,255,${brightness * p})`;
+                    ctx.fill();
+                }
+
+                const currentRadius = maxRadius * Math.min(1, p * 1.05);
+                ctx.save();
+                ctx.translate(centerX, centerY);
+
+                const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, currentRadius * 1.1);
+                grad.addColorStop(0, `rgba(100,120,255,${0.05 * p})`);
+                grad.addColorStop(0.5, `rgba(80,100,220,${0.03 * p})`);
+                grad.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.arc(0, 0, currentRadius * 1.1, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 根据数值计算顶点
+                const points = [];
+                for (let i = 0; i < 6; i++) {
+                    const angle = (i / 6) * Math.PI * 2 - Math.PI / 2;
+                    const r = currentRadius * (0.55 + 0.45 * (values[i] / 100));
+                    const x = Math.cos(angle) * r;
+                    const y = Math.sin(angle) * r;
+                    points.push({ x, y, angle, r });
+                }
+
+                // 填充
+                ctx.beginPath();
+                for (let i = 0; i < 6; i++) {
+                    const p2 = points[i];
+                    if (i === 0) ctx.moveTo(p2.x, p2.y);
+                    else ctx.lineTo(p2.x, p2.y);
+                }
+                ctx.closePath();
+                ctx.fillStyle = `rgba(80,120,255,${0.04 * p})`;
+                ctx.fill();
+
+                // 连线
+                ctx.beginPath();
+                for (let i = 0; i < 6; i++) {
+                    const p2 = points[i];
+                    if (i === 0) ctx.moveTo(p2.x, p2.y);
+                    else ctx.lineTo(p2.x, p2.y);
+                }
+                ctx.closePath();
+                const lineColor = `rgba(100,140,255,${0.35 + 0.3 * p})`;
+                ctx.strokeStyle = lineColor;
+                ctx.lineWidth = 1.8 * (0.5 + 0.5 * p);
+                ctx.shadowColor = 'rgba(100,140,255,0.25)';
+                ctx.shadowBlur = 18 * p;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+
+                // 从中心到顶点连线 + 星星 + 标签
+                for (let i = 0; i < 6; i++) {
+                    const p2 = points[i];
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.lineTo(p2.x, p2.y);
+                    ctx.strokeStyle = `rgba(100,140,255,${0.12 * p})`;
+                    ctx.lineWidth = 0.8;
+                    ctx.stroke();
+
+                    if (p > 0.35) {
+                        const starP = Math.min(1, (p - 0.35) / 0.65);
+                        const starSize = 8 * starP;
+                        const glow = ctx.createRadialGradient(p2.x, p2.y, 0, p2.x, p2.y, starSize * 2.8);
+                        glow.addColorStop(0, `rgba(255,220,100,${0.8 * starP})`);
+                        glow.addColorStop(0.5, `rgba(255,200,80,${0.4 * starP})`);
+                        glow.addColorStop(1, 'rgba(0,0,0,0)');
+                        ctx.fillStyle = glow;
+                        ctx.beginPath();
+                        ctx.arc(p2.x, p2.y, starSize * 2.8, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        ctx.beginPath();
+                        ctx.arc(p2.x, p2.y, starSize * 0.5, 0, Math.PI * 2);
+                        ctx.fillStyle = `rgba(255,255,230,${0.95 * starP})`;
+                        ctx.fill();
+
+                        // 标签（深蓝色）
+                        ctx.fillStyle = `rgba(10,20,60,${0.85 * starP})`;
+                        ctx.font = 'bold 8px "PingFang SC","Microsoft YaHei",sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'bottom';
+                        const labelR = currentRadius * 1.18;
+                        const lx = Math.cos(points[i].angle) * labelR;
+                        const ly = Math.sin(points[i].angle) * labelR;
+                        ctx.fillText(labels[i], lx, ly - 6);
+
+                        // 数值（深紫色）
+                        ctx.fillStyle = `rgba(30,10,70,${0.9 * starP})`;
+                        ctx.font = 'bold 9px sans-serif';
+                        ctx.textBaseline = 'top';
+                        ctx.fillText(values[i] + '%', lx, ly + 4);
+                    }
+                }
+
+                // 中心点
+                const centerGlow = ctx.createRadialGradient(0, 0, 0, 0, 0, 18 * p);
+                centerGlow.addColorStop(0, `rgba(150,180,255,${0.4 * p})`);
+                centerGlow.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.fillStyle = centerGlow;
+                ctx.beginPath();
+                ctx.arc(0, 0, 18 * p, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            }
+
+            function expandHexagon() {
+                let startTime = null;
+                const duration = 2200;
+
+                function step(timestamp) {
+                    if (!startTime) startTime = timestamp;
+                    const elapsed = timestamp - startTime;
+                    const raw = Math.min(1, elapsed / duration);
+                    progress = 1 - Math.pow(1 - raw, 3);
+                    drawHexagon(progress);
+                    if (raw < 1) {
+                        animId = requestAnimationFrame(step);
+                    } else {
+                        progress = 1;
+                        drawHexagon(1);
+                        animId = null;
+                    }
+                }
+                animId = requestAnimationFrame(step);
+            }
+
+            drawHexagon(0.01);
+
+            let hexResizeTimer;
+            window.addEventListener('resize', () => {
+                clearTimeout(hexResizeTimer);
+                hexResizeTimer = setTimeout(() => {
+                    const r2 = container.getBoundingClientRect();
+                    if (r2.width > 10 && r2.height > 10) {
+                        W = r2.width;
+                        H = r2.height;
+                        canvas.width = W * dpr;
+                        canvas.height = H * dpr;
+                        canvas.style.width = W + 'px';
+                        canvas.style.height = H + 'px';
+                        ctx.scale(dpr, dpr);
+                        if (isExpanded) drawHexagon(progress);
+                        else drawHexagon(0.01);
+                    }
+                }, 300);
+            });
+        }
+
+        // ============================================================
+        //  跳动字节
+        // ============================================================
+        function startTypingEffect() {
+            const container = document.getElementById('typingText');
+            if (!container) return;
+            const originalText = '✦ 具有学科融合发展能力，致力于发散思维、全面发展 ✦';
+
+            function createBouncingText() {
+                container.innerHTML = '';
+                const chars = originalText.split('');
+                chars.forEach((char, index) => {
+                    const span = document.createElement('span');
+                    span.textContent = char;
+                    span.style.display = 'inline-block';
+                    span.style.opacity = '0';
+                    span.style.transform = 'translateY(8px) scale(0.5)';
+                    span.style.transition = 'all 0.3s ease';
+                    span.style.animationDelay = (index * 30) + 'ms';
+                    const hue = 220 + Math.random() * 40;
+                    span.style.color = `hsl(${hue},60%,50%)`;
+                    container.appendChild(span);
+                });
+                const spans = container.querySelectorAll('span');
+                spans.forEach((span, idx) => {
+                    setTimeout(() => {
+                        span.style.opacity = '1';
+                        span.style.transform = 'translateY(0) scale(1)';
+                    }, idx * 30);
+                });
+                setTimeout(() => {
+                    spans.forEach((span, idx) => {
+                        setTimeout(() => {
+                            span.style.opacity = '0';
+                            span.style.transform = 'translateY(-8px) scale(0.5)';
+                        }, idx * 20);
+                    });
+                    setTimeout(() => {
+                        createBouncingText();
+                    }, 800 + spans.length * 20);
+                }, 3000 + spans.length * 30);
+            }
+            createBouncingText();
+        }
+
+        // ============================================================
+        //  模态框（联系+详情）
         // ============================================================
         const modalOverlay = document.getElementById('modalOverlay');
-        const modalContent = document.getElementById('modalContent');
         const modalIcon = document.getElementById('modalIcon');
         const modalValue = document.getElementById('modalValue');
         const modalCopyBtn = document.getElementById('modalCopyBtn');
         const modalCloseBtn = document.getElementById('modalCloseBtn');
 
-        let modalDataType = 'phone';
-
         function openContactModal(type) {
-            modalDataType = type;
-            if (type === 'phone') {
-                modalIcon.textContent = '📱';
-                modalValue.textContent = PHONE;
-            } else {
-                modalIcon.textContent = '✉️';
-                modalValue.textContent = EMAIL;
-            }
+            if (type === 'phone') { modalIcon.textContent = '📱';
+                modalValue.textContent = PHONE; } else { modalIcon.textContent = '✉️';
+                modalValue.textContent = EMAIL; }
+            const modalContent = document.querySelector('.modal-content');
+            modalContent.style.backgroundImage = 'none';
+            modalContent.style.backgroundColor = 'rgba(255,252,248,0.95)';
             modalOverlay.classList.add('active');
             document.body.style.overflow = 'hidden';
+            modalCopyBtn.style.display = 'block';
         }
 
         function closeModal() {
             modalOverlay.classList.remove('active');
             document.body.style.overflow = '';
+            const modalContent = document.querySelector('.modal-content');
+            modalContent.style.backgroundImage = 'none';
+            modalContent.style.backgroundColor = 'rgba(255,252,248,0.95)';
         }
-
         modalCopyBtn.addEventListener('click', () => {
             const text = modalValue.textContent;
             navigator.clipboard.writeText(text).then(() => {
@@ -1437,18 +2786,11 @@
                 setTimeout(() => { modalCopyBtn.textContent = orig; }, 1500);
             });
         });
-
         modalCloseBtn.addEventListener('click', closeModal);
-        modalOverlay.addEventListener('click', (e) => {
-            if (e.target === modalOverlay) closeModal();
-        });
-        modalContent.addEventListener('click', (e) => e.stopPropagation());
-
+        modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
+        document.querySelector('.modal-content').addEventListener('click', (e) => e.stopPropagation());
         document.querySelectorAll('.contact-me-card').forEach(card => {
-            card.addEventListener('click', () => {
-                const type = card.dataset.type;
-                openContactModal(type);
-            });
+            card.addEventListener('click', () => { openContactModal(card.dataset.type); });
         });
 
         // ============================================================
@@ -1468,292 +2810,806 @@
             imgModalOverlay.classList.remove('active');
             document.body.style.overflow = '';
         }
-
         closeImgModal.addEventListener('click', closeImgModalFn);
-        imgModalOverlay.addEventListener('click', (e) => {
-            if (e.target === imgModalOverlay) closeImgModalFn();
-        });
+        imgModalOverlay.addEventListener('click', (e) => { if (e.target === imgModalOverlay) closeImgModalFn(); });
         imgModalSrc.addEventListener('click', (e) => e.stopPropagation());
 
         // ============================================================
-        //  3D 摄影球体 (Three.js)
+        //  时间线模态框
         // ============================================================
-        let sphereInitialized = false;
-        let sphereGroup = null;
-        let sphereCamera = null;
-        let sphereRenderer = null;
-        let sphereScene = null;
-        let isDraggingSphere = false;
-        let prevPointerSphere = { x: 0, y: 0 };
-        let rotVelSphere = { x: 0, y: 0 };
-        let autoRotateSphere = true;
-        let sphereAutoSpeed = 0.004;
+        const timelineModal = document.getElementById('timelineModal');
+        const tlClose = document.getElementById('tlClose');
 
+        function openTimeline() {
+            timelineModal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeTimeline() {
+            timelineModal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+        tlClose.addEventListener('click', closeTimeline);
+        timelineModal.addEventListener('click', (e) => {
+            if (e.target === timelineModal) closeTimeline();
+        });
+        document.getElementById('globeSummaryBtn').addEventListener('click', openTimeline);
+
+        // ============================================================
+        //  3D 场景
+        // ============================================================
+        let scenes = [];
+
+        function initAllThree() {
+            initPhotoSphere();
+            initCertWall();
+        }
+
+        // ----- 摄影球体（缩小版） -----
         function initPhotoSphere() {
-            if (sphereInitialized) return;
             const container = document.getElementById('photoSphereContainer');
             if (!container) return;
             const rect = container.getBoundingClientRect();
-            const width = rect.width || 400;
-            const height = rect.height || 400;
-            if (width < 50 || height < 50) {
-                setTimeout(initPhotoSphere, 300);
-                return;
-            }
+            const w = rect.width || 400,
+                h = rect.height || 400;
+            if (w < 50 || h < 50) { setTimeout(initPhotoSphere, 300); return; }
 
             const scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x1a1a2e);
-
-            const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
-            camera.position.set(0, 0, 5.8);
-            camera.lookAt(0, 0, 0);
-
+            scene.background = new THREE.Color(0xf7f4f0);
+            const camera = new THREE.PerspectiveCamera(50, w / h, 0.1, 100);
+            camera.position.set(0, 0, 4.8);
             const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-            renderer.setSize(width, height);
+            renderer.setSize(w, h);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             container.appendChild(renderer.domElement);
 
-            const ambientLight = new THREE.AmbientLight(0x404060, 0.6);
-            scene.add(ambientLight);
-            const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
-            dirLight.position.set(1, 2, 3);
-            scene.add(dirLight);
-            const dirLight2 = new THREE.DirectionalLight(0x8888ff, 0.3);
-            dirLight2.position.set(-2, -1, -2);
-            scene.add(dirLight2);
+            const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambient);
+            const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+            dir.position.set(1, 2, 3);
+            scene.add(dir);
+            const dir2 = new THREE.DirectionalLight(0xffffff, 0.3);
+            dir2.position.set(-2, -1, -2);
+            scene.add(dir2);
 
             const starsGeo = new THREE.BufferGeometry();
-            const starsCount = 600;
-            const starsPos = new Float32Array(starsCount * 3);
-            for (let i = 0; i < starsCount * 3; i++) {
-                starsPos[i] = (Math.random() - 0.5) * 40;
-            }
+            const starsPos = new Float32Array(300 * 3);
+            for (let i = 0; i < 300 * 3; i++) starsPos[i] = (Math.random() - 0.5) * 40;
             starsGeo.setAttribute('position', new THREE.BufferAttribute(starsPos, 3));
-            const starsMat = new THREE.PointsMaterial({ color: 0x8899bb, size: 0.04, transparent: true, opacity: 0.4 });
+            const starsMat = new THREE.PointsMaterial({ color: 0xccbbaa, size: 0.04, transparent: true, opacity: 0.2 });
             const stars = new THREE.Points(starsGeo, starsMat);
             scene.add(stars);
 
             const group = new THREE.Group();
             scene.add(group);
-            sphereGroup = group;
-            sphereScene = scene;
-            sphereCamera = camera;
-            sphereRenderer = renderer;
-
-            const radius = 2.3;
-            const textureLoader = new THREE.TextureLoader();
-            const numPhotos = PHOTO_COUNT;
+            const radius = 0.85;
+            const loader = new THREE.TextureLoader();
             const phi = Math.PI * (3 - Math.sqrt(5));
 
-            for (let i = 0; i < numPhotos; i++) {
-                const y = 1 - (i / (numPhotos - 1)) * 2;
+            for (let i = 0; i < PHOTO_COUNT; i++) {
+                const y = 1 - (i / (PHOTO_COUNT - 1)) * 2;
                 const r = Math.sqrt(1 - y * y);
                 const theta = phi * i;
-                const x = Math.cos(theta) * r;
-                const z = Math.sin(theta) * r;
-                const pos = new THREE.Vector3(x, y, z).multiplyScalar(radius);
-
-                const planeGeo = new THREE.PlaneGeometry(0.9, 0.9);
-                const material = new THREE.MeshStandardMaterial({
-                    side: THREE.DoubleSide,
-                    roughness: 0.3,
-                    metalness: 0.05,
-                    transparent: true,
-                    opacity: 0.95,
-                });
-                const mesh = new THREE.Mesh(planeGeo, material);
+                const pos = new THREE.Vector3(Math.cos(theta) * r, y, Math.sin(theta) * r).multiplyScalar(radius);
+                const geo = new THREE.PlaneGeometry(0.36, 0.36);
+                const mat = new THREE.MeshStandardMaterial({ side: THREE.DoubleSide, roughness: 0.3, metalness: 0.05,
+                    transparent: true, opacity: 0.95 });
+                const mesh = new THREE.Mesh(geo, mat);
                 mesh.position.copy(pos);
                 mesh.lookAt(0, 0, 0);
                 group.add(mesh);
-
                 const idx = i;
-                textureLoader.load('照片' + (idx + 1) + '.jpg', (texture) => {
-                    material.map = texture;
-                    material.needsUpdate = true;
-                }, undefined, () => {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = 128;
-                    canvas.height = 128;
-                    const ctx = canvas.getContext('2d');
-                    ctx.fillStyle = '#2a2a4a';
+                loader.load('照片' + (idx + 1) + '.jpg', (tex) => { mat.map = tex;
+                    mat.needsUpdate = true; }, undefined, () => {
+                    const c = document.createElement('canvas');
+                    c.width = 128;
+                    c.height = 128;
+                    const ctx = c.getContext('2d');
+                    ctx.fillStyle = '#e8ddd0';
                     ctx.fillRect(0, 0, 128, 128);
-                    ctx.fillStyle = '#ffffff';
+                    ctx.fillStyle = '#5a4a35';
                     ctx.font = '24px sans-serif';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
                     ctx.fillText('📷', 64, 58);
                     ctx.font = '16px sans-serif';
                     ctx.fillText('' + (idx + 1), 64, 92);
-                    const tex = new THREE.CanvasTexture(canvas);
-                    material.map = tex;
-                    material.needsUpdate = true;
+                    const tex = new THREE.CanvasTexture(c);
+                    mat.map = tex;
+                    mat.needsUpdate = true;
                 });
-
-                const edgeGeo = new THREE.EdgesGeometry(planeGeo);
-                const edgeMat = new THREE.LineBasicMaterial({
-                    color: 0x6c63ff,
-                    transparent: true,
-                    opacity: 0.1,
-                });
-                const edge = new THREE.LineSegments(edgeGeo, edgeMat);
+                const edge = new THREE.LineSegments(new THREE.EdgesGeometry(geo),
+                    new THREE.LineBasicMaterial({ color: 0x8fb386, transparent: true, opacity: 0.15 }));
                 edge.position.copy(pos);
                 edge.lookAt(0, 0, 0);
                 group.add(edge);
             }
 
             const glowGeo = new THREE.BufferGeometry();
-            const glowCount = 200;
-            const glowPos = new Float32Array(glowCount * 3);
-            for (let i = 0; i < glowCount; i++) {
-                const theta2 = Math.random() * Math.PI * 2;
-                const phi2 = Math.acos(2 * Math.random() - 1);
-                const r2 = radius * (1.05 + 0.2 * Math.random());
-                glowPos[i * 3] = Math.sin(phi2) * Math.cos(theta2) * r2;
-                glowPos[i * 3 + 1] = Math.sin(phi2) * Math.sin(theta2) * r2;
-                glowPos[i * 3 + 2] = Math.cos(phi2) * r2;
+            const glowPos = new Float32Array(80 * 3);
+            for (let i = 0; i < 80; i++) {
+                const t = Math.random() * Math.PI * 2,
+                    p = Math.acos(2 * Math.random() - 1),
+                    r2 = radius * (1.05 + 0.2 * Math.random());
+                glowPos[i * 3] = Math.sin(p) * Math.cos(t) * r2;
+                glowPos[i * 3 + 1] = Math.sin(p) * Math.sin(t) * r2;
+                glowPos[i * 3 + 2] = Math.cos(p) * r2;
             }
             glowGeo.setAttribute('position', new THREE.BufferAttribute(glowPos, 3));
-            const glowMat = new THREE.PointsMaterial({
-                color: 0x6c63ff,
-                size: 0.015,
-                transparent: true,
-                blending: THREE.AdditiveBlending,
-                depthWrite: false
-            });
-            const glowParticles = new THREE.Points(glowGeo, glowMat);
-            group.add(glowParticles);
+            const glowMat = new THREE.PointsMaterial({ color: 0x8fb386, size: 0.015, transparent: true,
+                blending: THREE.AdditiveBlending, depthWrite: false });
+            group.add(new THREE.Points(glowGeo, glowMat));
 
             const canvas = renderer.domElement;
+            let isDrag = false,
+                prevP = { x: 0, y: 0 },
+                rotV = { x: 0, y: 0 },
+                autoRot = true;
+            const autoSpd = 0.005;
 
             canvas.addEventListener('touchstart', (e) => {
                 e.preventDefault();
-                const touch = e.touches[0];
-                const rect = canvas.getBoundingClientRect();
-                prevPointerSphere.x = ((touch.clientX - rect.left) / rect.width) * 2 - 1;
-                prevPointerSphere.y = -((touch.clientY - rect.top) / rect.height) * 2 + 1;
-                isDraggingSphere = true;
-                autoRotateSphere = false;
-                rotVelSphere.x = 0;
-                rotVelSphere.y = 0;
+                const t = e.touches[0],
+                    rect = canvas.getBoundingClientRect();
+                prevP.x = ((t.clientX - rect.left) / rect.width) * 2 - 1;
+                prevP.y = -((t.clientY - rect.top) / rect.height) * 2 + 1;
+                isDrag = true;
+                autoRot = false;
+                rotV.x = 0;
+                rotV.y = 0;
             }, { passive: false });
-
             canvas.addEventListener('touchmove', (e) => {
                 e.preventDefault();
-                if (!isDraggingSphere || !e.touches.length) return;
-                const touch = e.touches[0];
-                const rect = canvas.getBoundingClientRect();
-                const x = ((touch.clientX - rect.left) / rect.width) * 2 - 1;
-                const y = -((touch.clientY - rect.top) / rect.height) * 2 + 1;
-                const dx = x - prevPointerSphere.x;
-                const dy = y - prevPointerSphere.y;
-                group.rotation.y += dx * 1.6;
-                group.rotation.x += dy * 1.0;
+                if (!isDrag || !e.touches.length) return;
+                const t = e.touches[0],
+                    rect = canvas.getBoundingClientRect();
+                const x = ((t.clientX - rect.left) / rect.width) * 2 - 1,
+                    y = -((t.clientY - rect.top) / rect.height) * 2 + 1;
+                const dx = x - prevP.x,
+                    dy = y - prevP.y;
+                group.rotation.y += dx * 1.8;
+                group.rotation.x += dy * 1.2;
                 group.rotation.x = Math.max(-0.8, Math.min(0.8, group.rotation.x));
-                rotVelSphere.x = dy * 0.025;
-                rotVelSphere.y = dx * 0.025;
-                prevPointerSphere.x = x;
-                prevPointerSphere.y = y;
+                rotV.x = dy * 0.03;
+                rotV.y = dx * 0.03;
+                prevP.x = x;
+                prevP.y = y;
             }, { passive: false });
-
-            canvas.addEventListener('touchend', () => {
-                isDraggingSphere = false;
-                setTimeout(() => { autoRotateSphere = true; }, 2500);
-            }, { passive: true });
-
+            canvas.addEventListener('touchend', () => { isDrag = false;
+                setTimeout(() => { autoRot = true; }, 2000); }, { passive: true });
             canvas.addEventListener('mousedown', (e) => {
                 const rect = canvas.getBoundingClientRect();
-                prevPointerSphere.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-                prevPointerSphere.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-                isDraggingSphere = true;
-                autoRotateSphere = false;
-                rotVelSphere.x = 0;
-                rotVelSphere.y = 0;
+                prevP.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+                prevP.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+                isDrag = true;
+                autoRot = false;
+                rotV.x = 0;
+                rotV.y = 0;
             });
-
             window.addEventListener('mousemove', (e) => {
-                if (!isDraggingSphere) return;
+                if (!isDrag) return;
                 const rect = canvas.getBoundingClientRect();
-                const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-                const y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-                const dx = x - prevPointerSphere.x;
-                const dy = y - prevPointerSphere.y;
-                group.rotation.y += dx * 1.6;
-                group.rotation.x += dy * 1.0;
+                const x = ((e.clientX - rect.left) / rect.width) * 2 - 1,
+                    y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+                const dx = x - prevP.x,
+                    dy = y - prevP.y;
+                group.rotation.y += dx * 1.8;
+                group.rotation.x += dy * 1.2;
                 group.rotation.x = Math.max(-0.8, Math.min(0.8, group.rotation.x));
-                rotVelSphere.x = dy * 0.025;
-                rotVelSphere.y = dx * 0.025;
-                prevPointerSphere.x = x;
-                prevPointerSphere.y = y;
+                rotV.x = dy * 0.03;
+                rotV.y = dx * 0.03;
+                prevP.x = x;
+                prevP.y = y;
             });
+            window.addEventListener('mouseup', () => { if (isDrag) { isDrag = false;
+                    setTimeout(() => { autoRot = true; }, 2000); } });
 
-            window.addEventListener('mouseup', () => {
-                if (isDraggingSphere) {
-                    isDraggingSphere = false;
-                    setTimeout(() => { autoRotateSphere = true; }, 2500);
-                }
-            });
-
-            const raycaster = new THREE.Raycaster();
-            const mouse = new THREE.Vector2();
+            const raycaster = new THREE.Raycaster(),
+                mouse = new THREE.Vector2();
             canvas.addEventListener('click', (e) => {
                 const rect = canvas.getBoundingClientRect();
                 mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
                 mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
                 raycaster.setFromCamera(mouse, camera);
                 const meshes = group.children.filter(c => c.isMesh && c.geometry.type === 'PlaneGeometry');
-                const intersects = raycaster.intersectObjects(meshes);
-                if (intersects.length > 0) {
-                    const hit = intersects[0].object;
-                    const idx = group.children.indexOf(hit);
-                    if (idx >= 0 && idx < PHOTO_COUNT) {
-                        openImgModal('照片' + (idx + 1) + '.jpg');
-                    }
+                const hits = raycaster.intersectObjects(meshes);
+                if (hits.length > 0) {
+                    const idx = group.children.indexOf(hits[0].object);
+                    if (idx >= 0 && idx < PHOTO_COUNT) openImgModal('照片' + (idx + 1) + '.jpg');
                 }
             });
 
-            function resizeSphere() {
+            function resize() {
                 const rect2 = container.getBoundingClientRect();
-                const w = rect2.width || 400;
-                const h = rect2.height || 400;
-                if (w > 10 && h > 10) {
-                    camera.aspect = w / h;
+                const w2 = rect2.width || 400,
+                    h2 = rect2.height || 400;
+                if (w2 > 10 && h2 > 10) { camera.aspect = w2 / h2;
                     camera.updateProjectionMatrix();
-                    renderer.setSize(w, h);
-                }
+                    renderer.setSize(w2, h2); }
             }
-            window.addEventListener('resize', resizeSphere);
+            window.addEventListener('resize', resize);
 
-            function animateSphere() {
-                requestAnimationFrame(animateSphere);
-                if (autoRotateSphere && !isDraggingSphere) {
-                    group.rotation.y += sphereAutoSpeed;
-                }
-                if (!isDraggingSphere) {
-                    if (Math.abs(rotVelSphere.x) > 0.0001 || Math.abs(rotVelSphere.y) > 0.0001) {
-                        group.rotation.x += rotVelSphere.x * 0.5;
-                        group.rotation.y += rotVelSphere.y * 0.5;
+            function animate() {
+                requestAnimationFrame(animate);
+                if (autoRot && !isDrag) group.rotation.y += autoSpd;
+                if (!isDrag) {
+                    if (Math.abs(rotV.x) > 0.0001 || Math.abs(rotV.y) > 0.0001) {
+                        group.rotation.x += rotV.x * 0.5;
+                        group.rotation.y += rotV.y * 0.5;
                         group.rotation.x = Math.max(-0.8, Math.min(0.8, group.rotation.x));
-                        rotVelSphere.x *= 0.96;
-                        rotVelSphere.y *= 0.96;
+                        rotV.x *= 0.95;
+                        rotV.y *= 0.95;
                     }
                 }
                 stars.rotation.y += 0.0003;
                 stars.rotation.x += 0.0001;
                 renderer.render(scene, camera);
             }
-            animateSphere();
+            animate();
+            scenes.push({ scene, camera, renderer, container, group, stars, resize });
+        }
 
-            sphereInitialized = true;
-            console.log('✅ 摄影球体初始化完成');
+        // ----- 证书曲面墙（自动旋转） -----
+        function initCertWall() {
+            const container = document.getElementById('certWallContainer');
+            if (!container) return;
+            const rect = container.getBoundingClientRect();
+            const w = rect.width || 400,
+                h = rect.height || 400;
+            if (w < 50 || h < 50) { setTimeout(initCertWall, 300); return; }
+
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf7f4f0);
+            const camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
+            camera.position.set(0, 0, 5.5);
+            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+            renderer.setSize(w, h);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(renderer.domElement);
+
+            const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambient);
+            const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+            dir.position.set(1, 2, 3);
+            scene.add(dir);
+            const dir2 = new THREE.DirectionalLight(0xffffff, 0.3);
+            dir2.position.set(-2, -1, -2);
+            scene.add(dir2);
+
+            const starsGeo = new THREE.BufferGeometry();
+            const starsPos = new Float32Array(300 * 3);
+            for (let i = 0; i < 300 * 3; i++) starsPos[i] = (Math.random() - 0.5) * 40;
+            starsGeo.setAttribute('position', new THREE.BufferAttribute(starsPos, 3));
+            const starsMat = new THREE.PointsMaterial({ color: 0xccbbaa, size: 0.04, transparent: true, opacity: 0.2 });
+            const stars = new THREE.Points(starsGeo, starsMat);
+            scene.add(stars);
+
+            const group = new THREE.Group();
+            scene.add(group);
+            const radius = 2.2,
+                total = CERT_COUNT;
+            const loader = new THREE.TextureLoader();
+
+            for (let i = 0; i < total; i++) {
+                const angle = (i / total) * Math.PI * 2;
+                const y = -1.8 + (i / (total - 1)) * 3.6;
+                const pos = new THREE.Vector3(Math.sin(angle) * radius, y, Math.cos(angle) * radius);
+                const geo = new THREE.PlaneGeometry(0.6, 0.6);
+                const mat = new THREE.MeshStandardMaterial({ side: THREE.DoubleSide, roughness: 0.4, metalness: 0.05,
+                    transparent: true, opacity: 0.95 });
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.position.copy(pos);
+                mesh.lookAt(0, y, 0);
+                group.add(mesh);
+                const idx = i;
+                loader.load((idx + 1) + '.jpg', (tex) => { mat.map = tex;
+                    mat.needsUpdate = true; }, undefined, () => {
+                    const c = document.createElement('canvas');
+                    c.width = 128;
+                    c.height = 128;
+                    const ctx = c.getContext('2d');
+                    ctx.fillStyle = '#e8ddd0';
+                    ctx.fillRect(0, 0, 128, 128);
+                    ctx.fillStyle = '#5a4a35';
+                    ctx.font = '20px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('📄', 64, 58);
+                    ctx.font = '14px sans-serif';
+                    ctx.fillText('' + (idx + 1), 64, 92);
+                    const tex = new THREE.CanvasTexture(c);
+                    mat.map = tex;
+                    mat.needsUpdate = true;
+                });
+                const edge = new THREE.LineSegments(new THREE.EdgesGeometry(geo),
+                    new THREE.LineBasicMaterial({ color: 0x8fb386, transparent: true, opacity: 0.12 }));
+                edge.position.copy(pos);
+                edge.lookAt(0, y, 0);
+                group.add(edge);
+            }
+
+            const glowGeo = new THREE.BufferGeometry();
+            const glowPos = new Float32Array(150 * 3);
+            for (let i = 0; i < 150; i++) {
+                const t = Math.random() * Math.PI * 2,
+                    y2 = (Math.random() - 0.5) * 4,
+                    r2 = radius * (1.02 + 0.15 * Math.random());
+                glowPos[i * 3] = Math.sin(t) * r2;
+                glowPos[i * 3 + 1] = y2;
+                glowPos[i * 3 + 2] = Math.cos(t) * r2;
+            }
+            glowGeo.setAttribute('position', new THREE.BufferAttribute(glowPos, 3));
+            const glowMat = new THREE.PointsMaterial({ color: 0x8fb386, size: 0.02, transparent: true,
+                blending: THREE.AdditiveBlending, depthWrite: false });
+            group.add(new THREE.Points(glowGeo, glowMat));
+
+            let autoRotateCert = true;
+            const canvas = renderer.domElement;
+            let isDragCert = false,
+                prevPCert = { x: 0, y: 0 },
+                rotVCert = { x: 0, y: 0 };
+
+            canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const t = e.touches[0],
+                    rect = canvas.getBoundingClientRect();
+                prevPCert.x = ((t.clientX - rect.left) / rect.width) * 2 - 1;
+                prevPCert.y = -((t.clientY - rect.top) / rect.height) * 2 + 1;
+                isDragCert = true;
+                autoRotateCert = false;
+                rotVCert.x = 0;
+                rotVCert.y = 0;
+            }, { passive: false });
+            canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (!isDragCert || !e.touches.length) return;
+                const t = e.touches[0],
+                    rect = canvas.getBoundingClientRect();
+                const x = ((t.clientX - rect.left) / rect.width) * 2 - 1,
+                    y = -((t.clientY - rect.top) / rect.height) * 2 + 1;
+                const dx = x - prevPCert.x,
+                    dy = y - prevPCert.y;
+                group.rotation.y += dx * 1.8;
+                group.rotation.x += dy * 1.2;
+                group.rotation.x = Math.max(-0.8, Math.min(0.8, group.rotation.x));
+                rotVCert.x = dy * 0.03;
+                rotVCert.y = dx * 0.03;
+                prevPCert.x = x;
+                prevPCert.y = y;
+            }, { passive: false });
+            canvas.addEventListener('touchend', () => { isDragCert = false;
+                setTimeout(() => { autoRotateCert = true; }, 2000); }, { passive: true });
+            canvas.addEventListener('mousedown', (e) => {
+                const rect = canvas.getBoundingClientRect();
+                prevPCert.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+                prevPCert.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+                isDragCert = true;
+                autoRotateCert = false;
+                rotVCert.x = 0;
+                rotVCert.y = 0;
+            });
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragCert) return;
+                const rect = canvas.getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width) * 2 - 1,
+                    y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+                const dx = x - prevPCert.x,
+                    dy = y - prevPCert.y;
+                group.rotation.y += dx * 1.8;
+                group.rotation.x += dy * 1.2;
+                group.rotation.x = Math.max(-0.8, Math.min(0.8, group.rotation.x));
+                rotVCert.x = dy * 0.03;
+                rotVCert.y = dx * 0.03;
+                prevPCert.x = x;
+                prevPCert.y = y;
+            });
+            window.addEventListener('mouseup', () => { if (isDragCert) { isDragCert = false;
+                    setTimeout(() => { autoRotateCert = true; }, 2000); } });
+
+            const raycaster = new THREE.Raycaster(),
+                mouse = new THREE.Vector2();
+            canvas.addEventListener('click', (e) => {
+                const rect = canvas.getBoundingClientRect();
+                mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+                mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+                raycaster.setFromCamera(mouse, camera);
+                const meshes = group.children.filter(c => c.isMesh && c.geometry.type === 'PlaneGeometry');
+                const hits = raycaster.intersectObjects(meshes);
+                if (hits.length > 0) {
+                    const idx = group.children.indexOf(hits[0].object);
+                    if (idx >= 0 && idx < CERT_COUNT) openImgModal((idx + 1) + '.jpg');
+                }
+            });
+
+            function resizeCert() {
+                const rect2 = container.getBoundingClientRect();
+                const w2 = rect2.width || 400,
+                    h2 = rect2.height || 400;
+                if (w2 > 10 && h2 > 10) { camera.aspect = w2 / h2;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(w2, h2); }
+            }
+            window.addEventListener('resize', resizeCert);
+
+            function animateCert() {
+                requestAnimationFrame(animateCert);
+                if (autoRotateCert && !isDragCert) { group.rotation.y += 0.004; }
+                if (!isDragCert) {
+                    if (Math.abs(rotVCert.x) > 0.0001 || Math.abs(rotVCert.y) > 0.0001) {
+                        group.rotation.x += rotVCert.x * 0.5;
+                        group.rotation.y += rotVCert.y * 0.5;
+                        group.rotation.x = Math.max(-0.8, Math.min(0.8, group.rotation.x));
+                        rotVCert.x *= 0.95;
+                        rotVCert.y *= 0.95;
+                    }
+                }
+                stars.rotation.y += 0.0003;
+                stars.rotation.x += 0.0001;
+                renderer.render(scene, camera);
+            }
+            animateCert();
+            scenes.push({ scene, camera, renderer, container, group, stars, resize: resizeCert });
         }
 
         // ============================================================
-        //  初始化碰碰车
+        //  网状圆球
+        // ============================================================
+        let globeSceneObj = null,
+            globeRenderId = null,
+            globeMarkers = [];
+
+        function initGlobe() {
+            const container = document.getElementById('globeContainer');
+            if (!container) return;
+            const rect = container.getBoundingClientRect();
+            const w = rect.width || 400,
+                h = rect.height || 400;
+            if (w < 50 || h < 50) { setTimeout(initGlobe, 300); return; }
+
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x080818);
+            const camera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
+            camera.position.set(0, 0.8, 4.2);
+            camera.lookAt(0, 0, 0);
+
+            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+            renderer.setSize(w, h);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(renderer.domElement);
+
+            const ambient = new THREE.AmbientLight(0x4466aa, 0.3);
+            scene.add(ambient);
+            const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+            dir.position.set(1, 2, 4);
+            scene.add(dir);
+            const dir2 = new THREE.DirectionalLight(0x8888ff, 0.4);
+            dir2.position.set(-2, -1, -3);
+            scene.add(dir2);
+
+            // 星空
+            const starGeo = new THREE.BufferGeometry();
+            const starCount = 800;
+            const starPos = new Float32Array(starCount * 3);
+            const starColors = new Float32Array(starCount * 3);
+            for (let i = 0; i < starCount; i++) {
+                const theta = Math.random() * Math.PI * 2,
+                    phi = Math.acos(2 * Math.random() - 1),
+                    r = 15 + Math.random() * 25;
+                starPos[i * 3] = Math.sin(phi) * Math.cos(theta) * r;
+                starPos[i * 3 + 1] = Math.sin(phi) * Math.sin(theta) * r;
+                starPos[i * 3 + 2] = Math.cos(phi) * r;
+                const c = 0.4 + Math.random() * 0.6;
+                starColors[i * 3] = c;
+                starColors[i * 3 + 1] = c * (0.8 + Math.random() * 0.2);
+                starColors[i * 3 + 2] = c * (0.9 + Math.random() * 0.1);
+            }
+            starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+            starGeo.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
+            const starMat = new THREE.PointsMaterial({ size: 0.08, vertexColors: true, transparent: true, opacity: 0.8,
+                blending: THREE.AdditiveBlending, depthWrite: false });
+            const starsField = new THREE.Points(starGeo, starMat);
+            scene.add(starsField);
+
+            // 网状球体
+            const globeRadius = 1.6,
+                segments = 24;
+            const meridianMat = new THREE.LineBasicMaterial({ color: 0x4466aa, transparent: true, opacity: 0.3 });
+            for (let i = 0; i < segments; i++) {
+                const points = [],
+                    theta = (i / segments) * Math.PI * 2;
+                for (let j = 0; j <= segments; j++) {
+                    const phi = (j / segments) * Math.PI;
+                    points.push(new THREE.Vector3(
+                        globeRadius * Math.sin(phi) * Math.cos(theta),
+                        globeRadius * Math.cos(phi),
+                        globeRadius * Math.sin(phi) * Math.sin(theta)
+                    ));
+                }
+                const geo = new THREE.BufferGeometry().setFromPoints(points);
+                scene.add(new THREE.Line(geo, meridianMat));
+            }
+            const parallelMat = new THREE.LineBasicMaterial({ color: 0x4466aa, transparent: true, opacity: 0.25 });
+            for (let i = 1; i < segments / 2; i++) {
+                const points = [],
+                    phi = (i / (segments / 2)) * Math.PI / 2;
+                for (let j = 0; j <= segments; j++) {
+                    const theta = (j / segments) * Math.PI * 2;
+                    points.push(new THREE.Vector3(
+                        globeRadius * Math.sin(phi) * Math.cos(theta),
+                        globeRadius * Math.cos(phi),
+                        globeRadius * Math.sin(phi) * Math.sin(theta)
+                    ));
+                }
+                const geo = new THREE.BufferGeometry().setFromPoints(points);
+                scene.add(new THREE.Line(geo, parallelMat));
+            }
+            for (let i = 1; i < segments / 2; i++) {
+                const points = [],
+                    phi = -(i / (segments / 2)) * Math.PI / 2;
+                for (let j = 0; j <= segments; j++) {
+                    const theta = (j / segments) * Math.PI * 2;
+                    points.push(new THREE.Vector3(
+                        globeRadius * Math.sin(phi) * Math.cos(theta),
+                        globeRadius * Math.cos(phi),
+                        globeRadius * Math.sin(phi) * Math.sin(theta)
+                    ));
+                }
+                const geo = new THREE.BufferGeometry().setFromPoints(points);
+                scene.add(new THREE.Line(geo, parallelMat));
+            }
+            const glowSphereMat = new THREE.MeshBasicMaterial({ color: 0x4466aa, transparent: true, opacity: 0.04,
+                wireframe: false, side: THREE.BackSide });
+            scene.add(new THREE.Mesh(new THREE.SphereGeometry(globeRadius * 0.99, 32, 32), glowSphereMat));
+
+            // 标记点（含背景图）
+            const markerData = [{
+                id: 'freshman',
+                label: '大一',
+                lat: 50,
+                lon: -135,
+                color: 0x667eea,
+                desc: '备考四级 · 系统学习专业知识 · 制作知识库 · 拓展人脉 · 创业尝试 · 竞赛准备',
+                bg: '背景10.jpg'
+            }, {
+                id: 'sophomore',
+                label: '大二',
+                lat: 15,
+                lon: 45,
+                color: 0x764ba2,
+                desc: '六级+雅思 · 明确研究方向 · 知识库做强 · 自媒体 · 创业起步 · 上层人脉 · 竞赛',
+                bg: '背景11.jpg'
+            }, {
+                id: 'junior',
+                label: '大三',
+                lat: -30,
+                lon: -150,
+                color: 0xf093fb,
+                desc: '雅思 · 专攻研究方向 · 跨考方向 · 考研准备 · 公司初步建立 · 知识库扩充',
+                bg: '背景13.jpg'
+            }, {
+                id: 'senior',
+                label: '大四',
+                lat: -55,
+                lon: 60,
+                color: 0xf5576c,
+                desc: '考研冲刺 · 跨考专攻 · 公司步入正轨 · 优化能力 · 全面发展',
+                bg: null
+            }];
+
+            const markerGroup = new THREE.Group();
+            scene.add(markerGroup);
+
+            markerData.forEach((data) => {
+                const latRad = data.lat * Math.PI / 180,
+                    lonRad = data.lon * Math.PI / 180;
+                const r = globeRadius * 1.02;
+                const pos = new THREE.Vector3(
+                    r * Math.cos(latRad) * Math.cos(lonRad),
+                    r * Math.sin(latRad),
+                    r * Math.cos(latRad) * Math.sin(lonRad)
+                );
+                const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16),
+                    new THREE.MeshBasicMaterial({ color: data.color, transparent: true, opacity: 0.9 }));
+                sphere.position.copy(pos);
+                sphere.userData = { markerId: data.id };
+                markerGroup.add(sphere);
+
+                const glowMesh = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 16),
+                    new THREE.MeshBasicMaterial({ color: data.color, transparent: true, opacity: 0.2,
+                        blending: THREE.AdditiveBlending }));
+                glowMesh.position.copy(pos);
+                markerGroup.add(glowMesh);
+
+                const lineGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), pos.clone()]);
+                markerGroup.add(new THREE.Line(lineGeo,
+                    new THREE.LineBasicMaterial({ color: data.color, transparent: true, opacity: 0.15,
+                        blending: THREE.AdditiveBlending })));
+
+                const canvas = document.createElement('canvas');
+                canvas.width = 128;
+                canvas.height = 48;
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, 128, 48);
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                const hexColor = '#' + data.color.toString(16).padStart(6, '0');
+                ctx.shadowColor = 'rgba(0,0,0,0.8)';
+                ctx.shadowBlur = 8;
+                ctx.font = 'bold 22px "PingFang SC", "Microsoft YaHei", sans-serif';
+                ctx.fillStyle = hexColor;
+                ctx.fillText(data.label, 64, 24);
+                ctx.shadowBlur = 0;
+                const texture = new THREE.CanvasTexture(canvas);
+                texture.needsUpdate = true;
+                const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true,
+                    depthTest: false, sizeAttenuation: true }));
+                sprite.position.copy(pos.clone().multiplyScalar(1.25));
+                sprite.scale.set(0.8, 0.3, 1);
+                sprite.userData = { markerId: data.id };
+                markerGroup.add(sprite);
+
+                globeMarkers.push({ id: data.id, label: data.label, desc: data.desc, color: data.color,
+                    position: pos, mesh: sphere, glow: glowMesh, bg: data.bg });
+            });
+
+            // 交互
+            const raycaster = new THREE.Raycaster(),
+                mouse = new THREE.Vector2();
+
+            function getIntersects(cx, cy) {
+                const rect = renderer.domElement.getBoundingClientRect();
+                mouse.x = ((cx - rect.left) / rect.width) * 2 - 1;
+                mouse.y = -((cy - rect.top) / rect.height) * 2 + 1;
+                raycaster.setFromCamera(mouse, camera);
+                return raycaster.intersectObjects(markerGroup.children.filter(c => c.isMesh && c.geometry.type ===
+                    'SphereGeometry' && c.userData.markerId));
+            }
+
+            function handleMarkerClick(hit) {
+                const markerId = hit.object.userData.markerId;
+                const marker = globeMarkers.find(m => m.id === markerId);
+                if (marker) {
+                    const map = { freshman: '大一', sophomore: '大二', junior: '大三', senior: '大四' };
+                    modalIcon.textContent = '🎯';
+                    modalValue.innerHTML =
+                        `<strong style="font-size:1.2rem;color:#667eea;">${map[marker.id]}</strong><br><span style="font-size:0.9rem;color:var(--text-secondary);">${marker.desc}</span>`;
+                    modalCopyBtn.style.display = 'none';
+                    const modalContent = document.querySelector('.modal-content');
+                    if (marker.bg) {
+                        modalContent.style.backgroundImage = `url('${marker.bg}')`;
+                        modalContent.style.backgroundSize = 'cover';
+                        modalContent.style.backgroundPosition = 'center';
+                        modalContent.style.backgroundColor = 'rgba(255,252,248,0.85)';
+                    } else {
+                        modalContent.style.backgroundImage = 'none';
+                        modalContent.style.backgroundColor = 'rgba(255,252,248,0.95)';
+                    }
+                    modalOverlay.classList.add('active');
+                    document.body.style.overflow = 'hidden';
+                    setTimeout(() => { modalCopyBtn.style.display = 'block'; }, 100);
+                }
+            }
+
+            renderer.domElement.addEventListener('click', (e) => {
+                const hits = getIntersects(e.clientX, e.clientY);
+                if (hits.length > 0) handleMarkerClick(hits[0]);
+            });
+            renderer.domElement.addEventListener('touchstart', (e) => {
+                const touch = e.touches[0];
+                if (touch) {
+                    const hits = getIntersects(touch.clientX, touch.clientY);
+                    if (hits.length > 0) { e.preventDefault();
+                        handleMarkerClick(hits[0]); }
+                }
+            }, { passive: false });
+
+            // 拖拽
+            let isDragging = false,
+                prevDrag = { x: 0, y: 0 },
+                dragRot = { x: 0, y: 0 },
+                autoRotateGlobe = true;
+
+            renderer.domElement.addEventListener('touchstart', (e) => {
+                const touch = e.touches[0];
+                if (touch) {
+                    const rect = renderer.domElement.getBoundingClientRect();
+                    prevDrag.x = ((touch.clientX - rect.left) / rect.width) * 2 - 1;
+                    prevDrag.y = -((touch.clientY - rect.top) / rect.height) * 2 + 1;
+                    isDragging = true;
+                    autoRotateGlobe = false;
+                    dragRot.x = 0;
+                    dragRot.y = 0;
+                }
+            }, { passive: true });
+            renderer.domElement.addEventListener('touchmove', (e) => {
+                if (!isDragging || !e.touches.length) return;
+                const touch = e.touches[0],
+                    rect = renderer.domElement.getBoundingClientRect();
+                const x = ((touch.clientX - rect.left) / rect.width) * 2 - 1,
+                    y = -((touch.clientY - rect.top) / rect.height) * 2 + 1;
+                const dx = x - prevDrag.x,
+                    dy = y - prevDrag.y;
+                markerGroup.rotation.y += dx * 2.5;
+                markerGroup.rotation.x += dy * 1.8;
+                markerGroup.rotation.x = Math.max(-1.2, Math.min(1.2, markerGroup.rotation.x));
+                dragRot.x = dy * 0.04;
+                dragRot.y = dx * 0.04;
+                prevDrag.x = x;
+                prevDrag.y = y;
+            }, { passive: true });
+            renderer.domElement.addEventListener('touchend', () => { isDragging = false;
+                setTimeout(() => { autoRotateGlobe = true; }, 2500); }, { passive: true });
+            renderer.domElement.addEventListener('mousedown', (e) => {
+                const rect = renderer.domElement.getBoundingClientRect();
+                prevDrag.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+                prevDrag.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+                isDragging = true;
+                autoRotateGlobe = false;
+                dragRot.x = 0;
+                dragRot.y = 0;
+            });
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const rect = renderer.domElement.getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width) * 2 - 1,
+                    y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+                const dx = x - prevDrag.x,
+                    dy = y - prevDrag.y;
+                markerGroup.rotation.y += dx * 2.5;
+                markerGroup.rotation.x += dy * 1.8;
+                markerGroup.rotation.x = Math.max(-1.2, Math.min(1.2, markerGroup.rotation.x));
+                dragRot.x = dy * 0.04;
+                dragRot.y = dx * 0.04;
+                prevDrag.x = x;
+                prevDrag.y = y;
+            });
+            window.addEventListener('mouseup', () => { if (isDragging) { isDragging = false;
+                    setTimeout(() => { autoRotateGlobe = true; }, 2500); } });
+
+            function resizeGlobe() {
+                const rect2 = container.getBoundingClientRect();
+                const w2 = rect2.width || 400,
+                    h2 = rect2.height || 400;
+                if (w2 > 10 && h2 > 10) { camera.aspect = w2 / h2;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(w2, h2); }
+            }
+            window.addEventListener('resize', resizeGlobe);
+
+            function animateGlobe() {
+                globeRenderId = requestAnimationFrame(animateGlobe);
+                if (autoRotateGlobe && !isDragging) markerGroup.rotation.y += 0.004;
+                if (!isDragging) {
+                    if (Math.abs(dragRot.x) > 0.0001 || Math.abs(dragRot.y) > 0.0001) {
+                        markerGroup.rotation.x += dragRot.x * 0.5;
+                        markerGroup.rotation.y += dragRot.y * 0.5;
+                        markerGroup.rotation.x = Math.max(-1.2, Math.min(1.2, markerGroup.rotation.x));
+                        dragRot.x *= 0.96;
+                        dragRot.y *= 0.96;
+                    }
+                }
+                const time = Date.now() * 0.001;
+                globeMarkers.forEach((m, idx) => {
+                    const s = 1 + 0.15 * Math.sin(time * 1.2 + idx * 1.5);
+                    m.mesh.scale.set(s, s, s);
+                    m.glow.scale.set(1 + 0.2 * Math.sin(time * 0.8 + idx * 1.8), 1 + 0.2 * Math.sin(time * 0.8 +
+                        idx * 1.8), 1 + 0.2 * Math.sin(time * 0.8 + idx * 1.8));
+                });
+                starsField.rotation.y += 0.0002;
+                starsField.rotation.x += 0.0001;
+                renderer.render(scene, camera);
+            }
+            animateGlobe();
+            globeSceneObj = { scene, camera, renderer, container, markerGroup, starsField };
+        }
+
+        // ============================================================
+        //  初始化
         // ============================================================
         setTimeout(safeInitBumper, 400);
+        setTimeout(startTypingEffect, 500);
 
         console.log('✅ 简历已加载 — 点击启动页进入');
     </script>
-
 </body>
 </html>
